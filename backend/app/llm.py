@@ -27,7 +27,11 @@ SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", "You are a helpful assistant for our 
 
 def _ask_bedrock(prompt: str) -> str:
     import boto3
-    client = boto3.client("bedrock-runtime", region_name=AWS_REGION)
+    from botocore.config import Config
+    # Bound how long a hung Bedrock call can block: without this, boto3 waits up
+    # to 60s on read before failing, burning Lambda duration before failover.
+    cfg = Config(connect_timeout=5, read_timeout=15, retries={"max_attempts": 2})
+    client = boto3.client("bedrock-runtime", region_name=AWS_REGION, config=cfg)
     resp = client.converse(
         modelId=BEDROCK_MODEL_ID,
         system=[{"text": SYSTEM_PROMPT}],

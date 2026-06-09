@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from mangum import Mangum
 from .llm import ask_llm
 
@@ -29,7 +29,10 @@ app.add_middleware(
 
 
 class ChatIn(BaseModel):
-    message: str
+    # Cap input length: the endpoint is public/unauthenticated, so an unbounded
+    # prompt is a direct token-cost lever for abuse. 4000 chars is generous for
+    # a chat turn; oversized requests get a 422 before they ever reach the LLM.
+    message: str = Field(..., min_length=1, max_length=4000)
 
 
 class ChatOut(BaseModel):
