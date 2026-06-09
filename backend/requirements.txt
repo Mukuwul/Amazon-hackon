@@ -1,0 +1,7 @@
+fastapi
+pydantic
+boto3
+mangum
+uvicorn[standard]
+google-genai
+python-dotenv
