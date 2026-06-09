@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -6,12 +7,24 @@ from .llm import ask_llm
 
 app = FastAPI(title="Amazon HackOn Starter API")
 
-# Browser calls. Tighten to your frontend URL before the demo if you like.
+# --- CORS ---
+# Handled HERE, in the app (works for both local uvicorn AND Lambda).
+# IMPORTANT: keep CORS DISABLED on the Lambda Function URL, or Lambda will
+# answer the OPTIONS preflight itself and bypass this config.
+# Origins are read from an env var (comma-separated) so you can add one
+# without a code change. Default covers local dev + your deployed frontend.
+ALLOWED_ORIGINS = [
+    o.strip()
+    for o in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    if o.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=ALLOWED_ORIGINS,
+    allow_credentials=False,        # no cookies/auth, so keep this False
+    allow_methods=["GET", "POST"],  # only what the API actually uses
+    allow_headers=["Content-Type"],
 )
 
 
@@ -33,5 +46,5 @@ def chat(body: ChatIn):
     return ChatOut(reply=ask_llm(body.message))
 
 
-# Lambda entrypoint — AWS calls this. Locally you still run uvicorn app.main:app
+# Lambda entrypoint. Locally you still run: uvicorn app.main:app --reload --port 8080
 handler = Mangum(app)
