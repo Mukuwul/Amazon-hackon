@@ -15,7 +15,7 @@ const META = {
 const prettyKey = (k) =>
   k.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()).replace("Csr", "CSR").replace("Fc", "FC");
 
-export default function RouteScreen({ route, building, onHealthCard, onBack }) {
+export default function RouteScreen({ route, building, onHealthCard, onBack, nextLabel = "Generate Product Health Card", nextHint = "Every figure above sums from a deterministic ledger" }) {
   const paths = [...route.paths].sort((a, b) => b.recovery - a.recovery);
   const winner = route.paths.find((p) => p.winner) || paths[0];
   const warehouse = route.paths.find((p) => p.path === "warehouse_relist");
@@ -62,8 +62,8 @@ export default function RouteScreen({ route, building, onHealthCard, onBack }) {
         </div>
       </div>
 
-      <FooterAction onClick={onHealthCard} loading={building} hint="Every figure above sums from a deterministic ledger">
-        Generate Product Health Card
+      <FooterAction onClick={onHealthCard} loading={building} hint={nextHint}>
+        {nextLabel}
         <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
           <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>

@@ -65,3 +65,34 @@ api.healthCardSafe = async (id, forceCached) => {
     throw e;
   }
 };
+
+// A sealed RTO unit routes as factory-new with no grade — but /route reads the
+// SEAL_CHECKED event from the same warm instance. On a cold-start 409, re-run the
+// seal check (not a grade) then route.
+api.routeRto = async (id, forceCached) => {
+  try {
+    return await api.route(id);
+  } catch (e) {
+    if (e.status === 409) {
+      await api.sealCheck(id, forceCached);
+      return api.route(id);
+    }
+    throw e;
+  }
+};
+
+// The liquidity curve needs a prior GRADED event. For the idle-asset lane the
+// grade is a hidden valuation step (we never show the grade screen), and the
+// grade letter is invariant for a like-new idle unit — so use the instant cached
+// grade so the slider never blocks on a live call.
+api.priceCurveSafe = async (id) => {
+  try {
+    return await api.priceCurve(id);
+  } catch (e) {
+    if (e.status === 409) {
+      await api.grade(id, true);
+      return api.priceCurve(id);
+    }
+    throw e;
+  }
+};

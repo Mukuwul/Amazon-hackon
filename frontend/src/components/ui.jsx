@@ -18,7 +18,7 @@ export function FooterAction({ children, onClick, disabled, loading, variant = "
         ? "bg-sl-green text-white hover:bg-sl-green-deep shadow-[0_8px_22px_-8px_rgba(31,163,122,0.75)]"
         : "bg-white text-sl-ink border border-sl-line hover:bg-sl-paper";
   return (
-    <div className="sticky bottom-0 z-30 px-4 pt-3 pb-4 bg-gradient-to-t from-sl-paper via-sl-paper to-transparent">
+    <div className="sticky bottom-0 z-30 px-4 pt-3 pb-4 backdrop-blur-sm bg-gradient-to-t from-sl-paper via-sl-paper to-transparent">
       {hint && <p className="text-center text-[11px] text-sl-muted mb-2">{hint}</p>}
       <button onClick={onClick} disabled={disabled || loading} className={`${base} ${styles}`}>
         {loading && <Spinner className="w-4 h-4" />}

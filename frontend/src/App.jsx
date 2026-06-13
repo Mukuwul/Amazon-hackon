@@ -3,11 +3,21 @@ import { api } from "./lib/api";
 import PhoneFrame from "./components/PhoneFrame";
 import RadarToast from "./components/RadarToast";
 import { ErrorNote } from "./components/ui";
+import { inr } from "./lib/format";
 import Inbox from "./screens/Inbox";
 import ItemIntro from "./screens/ItemIntro";
 import Grade from "./screens/Grade";
 import RouteScreen from "./screens/RouteScreen";
 import HealthCard from "./screens/HealthCard";
+import RadarScreen from "./screens/RadarScreen";
+import LiquidityScreen from "./screens/LiquidityScreen";
+import SealLane from "./screens/SealLane";
+import DiagnoseScreen from "./screens/DiagnoseScreen";
+import MetricsScreen from "./screens/MetricsScreen";
+
+// Each inbox item drives a dedicated flow. SL-001 is the ⭐ spine; the rest are
+// the MT4 supporting beats. Anything not mapped here stays QUEUED in the inbox.
+const LANE = { "SL-002": "radar", "SL-003": "diagnose", "SL-004": "rto" };
 
 export default function App() {
   const [screen, setScreen] = useState("inbox");
@@ -16,13 +26,18 @@ export default function App() {
   const [itemsLoading, setItemsLoading] = useState(true);
 
   const [item, setItem] = useState(null);
+  const [lane, setLane] = useState("spine");
   const [grade, setGrade] = useState(null);
   const [route, setRoute] = useState(null);
   const [card, setCard] = useState(null);
+  const [radarData, setRadarData] = useState(null);
+  const [curve, setCurve] = useState(null);
+  const [seal, setSeal] = useState(null);
+  const [diagnose, setDiagnose] = useState(null);
 
   const [busy, setBusy] = useState(false); // in-flight transition
   const [listed, setListed] = useState(false);
-  const [showToast, setShowToast] = useState(false);
+  const [toast, setToast] = useState(null); // { title, message }
   const [err, setErr] = useState(null);
 
   const [forceCached, setForceCached] = useState(
@@ -45,8 +60,12 @@ export default function App() {
         setItemsLoading(false);
       }
     })();
-    api.metrics().then(setMetrics).catch(() => {});
+    refreshMetrics();
   }, []);
+
+  function refreshMetrics() {
+    api.metrics().then(setMetrics).catch(() => {});
+  }
 
   function reloadInbox() {
     setErr(null);
@@ -58,24 +77,51 @@ export default function App() {
       .finally(() => setItemsLoading(false));
   }
 
-  async function openItem(row) {
-    setErr(null);
-    setBusy(true);
+  function resetItemState() {
     setGrade(null);
     setRoute(null);
     setCard(null);
+    setRadarData(null);
+    setCurve(null);
+    setSeal(null);
+    setDiagnose(null);
     setListed(false);
+    setToast(null);
+  }
+
+  async function openItem(row) {
+    setErr(null);
+    resetItemState();
+    const thisLane = LANE[row.item_id] || "spine";
+    setLane(thisLane);
+    setBusy(true);
     try {
-      const detail = await api.item(row.item_id);
-      setItem({ ...row, ...detail.item, passport: detail.passport });
-    } catch {
-      setItem(row); // fall back to the inbox row; intro still renders
+      const detail = await api.item(row.item_id).catch(() => null);
+      const it = detail ? { ...row, ...detail.item, passport: detail.passport } : row;
+      setItem(it);
+      if (thisLane === "radar") {
+        const r = await api.radar(it.asin);
+        setRadarData(r);
+        setScreen("radar");
+      } else if (thisLane === "diagnose") {
+        const d = await api.diagnose(it.asin);
+        setDiagnose(d);
+        setScreen("diagnose");
+      } else if (thisLane === "rto") {
+        const s = await api.sealCheck(it.item_id, forceCached);
+        setSeal(s);
+        setScreen("seal");
+      } else {
+        setScreen("intro");
+      }
+    } catch (e) {
+      setErr({ message: `Couldn't open this item (${e.detail || e.message}).`, retry: () => openItem(row) });
     } finally {
       setBusy(false);
-      setScreen("intro");
     }
   }
 
+  // --- spine (SL-001) ---
   async function runScan() {
     setErr(null);
     setBusy(true);
@@ -120,16 +166,66 @@ export default function App() {
 
   function listItem() {
     setListed(true);
-    setShowToast(true);
-    api.metrics().then(setMetrics).catch(() => {});
+    const w = route?.paths.find((p) => p.winner);
+    const msg = w
+      ? `${w.note || "Buyers matched nearby"}${w.distance_km != null ? ` · nearest ${w.distance_km} km` : ""}`
+      : "Buyers matched nearby";
+    setToast({ title: "Idle Asset Radar · ping sent", message: msg });
+    refreshMetrics();
+  }
+
+  // --- radar lane (SL-002) ---
+  async function openLiquidity() {
+    setErr(null);
+    setBusy(true);
+    try {
+      const c = await api.priceCurveSafe(item.item_id);
+      setCurve(c);
+      setScreen("liquidity");
+    } catch (e) {
+      setErr({ message: `Couldn't price this item (${e.detail || e.message}).`, retry: openLiquidity });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function listIdle(point) {
+    setToast({
+      title: "Listed · buyers pinged",
+      message: `${inr(point.price)} ask · ${point.buyers_at_price} buyers ready, sells in ~${point.est_days_to_sell} days. Refund parked as Amazon credit.`,
+    });
+    refreshMetrics();
+  }
+
+  // --- RTO lane (SL-004) ---
+  async function runRtoRoute() {
+    setErr(null);
+    setBusy(true);
+    try {
+      const r = await api.routeRto(item.item_id, forceCached);
+      setRoute(r);
+      setScreen("route");
+    } catch (e) {
+      setErr({ message: `Routing failed (${e.detail || e.message}).`, retry: runRtoRoute });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function listRto() {
+    setListed(true);
+    setToast({
+      title: "Sealed unit relisted",
+      message: "Local pickup booked — refund already released as credit. The box never saw a warehouse.",
+    });
+    refreshMetrics();
   }
 
   function goInbox() {
-    setShowToast(false);
+    setToast(null);
+    setErr(null);
     setScreen("inbox");
   }
-
-  const winnerPath = route?.paths.find((p) => p.winner);
 
   return (
     <PhoneFrame>
@@ -142,6 +238,7 @@ export default function App() {
             forceCached={forceCached}
             onForceCached={setForceCached}
             onOpen={openItem}
+            onShowMetrics={() => setScreen("metrics")}
           />
         )}
         {screen === "intro" && item && (
@@ -151,7 +248,14 @@ export default function App() {
           <Grade item={item} grade={grade} routing={busy} onRoute={runRoute} onBack={() => setScreen("intro")} />
         )}
         {screen === "route" && route && (
-          <RouteScreen route={route} building={busy} onHealthCard={buildCard} onBack={() => setScreen("grade")} />
+          <RouteScreen
+            route={route}
+            building={busy}
+            onHealthCard={lane === "rto" ? listRto : buildCard}
+            nextLabel={lane === "rto" ? "List for local pickup" : undefined}
+            nextHint={lane === "rto" ? "Sealed unit · routes straight to a local buyer" : undefined}
+            onBack={() => setScreen(lane === "rto" ? "seal" : "grade")}
+          />
         )}
         {screen === "card" && card && (
           <HealthCard
@@ -163,10 +267,25 @@ export default function App() {
             onBack={() => setScreen("route")}
           />
         )}
+        {screen === "radar" && radarData && item && (
+          <RadarScreen item={item} radar={radarData} valuing={busy} onSell={openLiquidity} onBack={goInbox} />
+        )}
+        {screen === "liquidity" && curve && item && (
+          <LiquidityScreen item={item} curve={curve} listing={false} onList={listIdle} onBack={() => setScreen("radar")} />
+        )}
+        {screen === "seal" && seal && item && (
+          <SealLane item={item} seal={seal} routing={busy} onRoute={runRtoRoute} onBack={goInbox} />
+        )}
+        {screen === "diagnose" && diagnose && item && (
+          <DiagnoseScreen item={item} diagnose={diagnose} onBack={goInbox} />
+        )}
+        {screen === "metrics" && (
+          <MetricsScreen metrics={metrics} onBack={goInbox} onDone={goInbox} />
+        )}
       </div>
 
-      {/* radar ping — final spine beat */}
-      {showToast && <RadarToast path={winnerPath} onClose={() => setShowToast(false)} />}
+      {/* radar ping — fires on every list/handoff beat */}
+      {toast && <RadarToast title={toast.title} message={toast.message} onClose={() => setToast(null)} />}
 
       {/* global error */}
       {err && (

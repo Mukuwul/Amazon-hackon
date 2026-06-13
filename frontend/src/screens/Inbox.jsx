@@ -1,12 +1,20 @@
 import TopBar from "../components/TopBar";
 import Thumb from "../components/Thumb";
 import { SLBadge } from "../components/ui";
-import { inr, num } from "../lib/format";
+import { inr } from "../lib/format";
 
 const STATUS = {
   return_initiated: { label: "Return started", cls: "bg-amber-50 text-amber-700 ring-amber-200" },
   idle: { label: "Idle · unused", cls: "bg-slate-100 text-slate-600 ring-slate-200" },
   rto_in_transit: { label: "RTO in transit", cls: "bg-sky-50 text-sky-700 ring-sky-200" },
+};
+
+// The four playable lanes off the inbox. Each maps an item to its dedicated flow
+// (App routes by item_id); everything else stays a display-only QUEUED row.
+const LANE = {
+  "SL-002": { chip: "IDLE · RADAR", cls: "bg-sky-50 text-sky-700 ring-sky-200", who: "Rahul", sub: "idle 19 months — demand is already searching" },
+  "SL-003": { chip: "LISTING FIX", cls: "bg-violet-50 text-violet-700 ring-violet-200", who: null, sub: "fix the listing that causes the returns" },
+  "SL-004": { chip: "RTO · SEALED", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200", who: null, sub: "sealed box — re-offer locally, no scan" },
 };
 
 function StageToggle({ value, onChange }) {
@@ -28,9 +36,10 @@ function StageToggle({ value, onChange }) {
   );
 }
 
-export default function Inbox({ items, metrics, loading, forceCached, onForceCached, onOpen }) {
+export default function Inbox({ items, metrics, loading, forceCached, onForceCached, onOpen, onShowMetrics }) {
   const hero = items.find((i) => i.item_id === "SL-001");
-  const rest = items.filter((i) => i.item_id !== "SL-001");
+  const lanes = ["SL-002", "SL-003", "SL-004"].map((id) => items.find((i) => i.item_id === id)).filter(Boolean);
+  const queued = items.filter((i) => i.item_id !== "SL-001" && !LANE[i.item_id]);
 
   return (
     <div className="screen-scroll bg-sl-paper">
@@ -40,9 +49,12 @@ export default function Inbox({ items, metrics, loading, forceCached, onForceCac
         right={<StageToggle value={forceCached} onChange={onForceCached} />}
       />
 
-      {/* dormant-value banner */}
+      {/* dormant-value banner → batch impact */}
       <div className="px-4 pt-4">
-        <div className="relative overflow-hidden rounded-2xl bg-az-slate text-white p-4 shadow-card">
+        <button
+          onClick={onShowMetrics}
+          className="group relative w-full text-left overflow-hidden rounded-2xl bg-az-slate text-white p-4 shadow-card transition active:scale-[0.99]"
+        >
           <div className="absolute -right-6 -top-8 w-28 h-28 rounded-full bg-sl-green/25 blur-2xl" />
           <p className="text-white/55 text-[11px] font-600 uppercase tracking-wider">
             Products without a second chance
@@ -57,7 +69,13 @@ export default function Inbox({ items, metrics, loading, forceCached, onForceCac
               <span className="text-white/60 font-500">{metrics.warehouse_bypass_pct}% skipped the warehouse</span>
             </p>
           )}
-        </div>
+          <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-700 text-az-orange">
+            View batch impact
+            <svg viewBox="0 0 24 24" className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition" fill="none">
+              <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </span>
+        </button>
       </div>
 
       <p className="px-5 pt-5 pb-2 text-[11px] font-700 uppercase tracking-wider text-sl-muted">
@@ -92,17 +110,44 @@ export default function Inbox({ items, metrics, loading, forceCached, onForceCac
                 <span className="text-[11px] text-sl-muted">Paid {inr(hero.order?.price_paid ?? hero.mrp)}</span>
               </div>
             </div>
-            <svg viewBox="0 0 24 24" className="w-5 h-5 text-sl-muted self-center shrink-0 group-hover:translate-x-0.5 transition" fill="none">
-              <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+            <Chevron />
           </button>
         )}
 
-        {rest.map((it, idx) => (
+        {lanes.map((it, idx) => {
+          const lane = LANE[it.item_id];
+          return (
+            <button
+              key={it.item_id}
+              onClick={() => onOpen(it)}
+              className="group w-full text-left rounded-2xl bg-white ring-1 ring-sl-line shadow-card p-3 flex gap-3 transition hover:ring-sl-green/60 hover:shadow-pop active:scale-[0.99] anim-fade-up"
+              style={{ animationDelay: `${60 + idx * 50}ms` }}
+            >
+              <Thumb
+                src={it.thumb}
+                alt={it.title}
+                category={it.category}
+                className="w-[60px] h-[60px] rounded-xl shrink-0"
+              />
+              <div className="min-w-0 flex-1">
+                <span className={`inline-block rounded-full px-2 py-0.5 text-[9.5px] font-800 tracking-wide ring-1 ${lane.cls}`}>
+                  {lane.chip}
+                </span>
+                <h3 className="font-600 text-[13.5px] leading-tight text-sl-ink truncate mt-1">{it.title}</h3>
+                <p className="text-[11px] text-sl-muted mt-0.5 leading-snug truncate">
+                  {lane.who ? `${lane.who} · ` : ""}{lane.sub}
+                </p>
+              </div>
+              <Chevron />
+            </button>
+          );
+        })}
+
+        {queued.map((it, idx) => (
           <div
             key={it.item_id}
             className="rounded-2xl bg-white/70 ring-1 ring-sl-line p-3 flex gap-3 anim-fade-up"
-            style={{ animationDelay: `${60 + idx * 45}ms` }}
+            style={{ animationDelay: `${240 + idx * 45}ms` }}
           >
             <Thumb
               src={it.thumb}
@@ -124,6 +169,14 @@ export default function Inbox({ items, metrics, loading, forceCached, onForceCac
         ))}
       </div>
     </div>
+  );
+}
+
+function Chevron() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-5 h-5 text-sl-muted self-center shrink-0 group-hover:translate-x-0.5 transition" fill="none">
+      <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   );
 }
 

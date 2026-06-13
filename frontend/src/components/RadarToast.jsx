@@ -1,5 +1,5 @@
-export default function RadarToast({ path, onClose }) {
-  if (!path) return null;
+export default function RadarToast({ title = "Idle Asset Radar · ping sent", message, onClose }) {
+  if (!message) return null;
   return (
     <div className="absolute inset-x-0 bottom-0 z-50 px-4 pb-5">
       <div
@@ -20,11 +20,8 @@ export default function RadarToast({ path, onClose }) {
         </div>
 
         <div className="min-w-0 flex-1">
-          <p className="font-display font-700 text-[14px] leading-tight">Idle Asset Radar · ping sent</p>
-          <p className="text-white/80 text-[12px] leading-snug mt-0.5">
-            {path.note || "Buyers matched nearby"}
-            {path.distance_km != null && ` · nearest ${path.distance_km} km`}
-          </p>
+          <p className="font-display font-700 text-[14px] leading-tight">{title}</p>
+          <p className="text-white/80 text-[12px] leading-snug mt-0.5">{message}</p>
         </div>
 
         <button
