@@ -3,11 +3,13 @@
 // No search / bell / cart here — those belong to the buyer storefront, not the
 // global chrome. This bar appears only after you pick a view from the landing;
 // the per-screen TopBar handles back + page title beneath it.
-export default function WebShell({ children, onHome }) {
+const ROLE_LABEL = { buyer: "Buyer", seller: "Seller", ops: "Returns desk" };
+
+export default function WebShell({ children, onHome, guest }) {
   return (
     <div className="min-h-[100dvh] w-full bg-sl-paper flex flex-col">
       <header className="sticky top-0 z-40 bg-az-navy text-white">
-        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 h-14 flex items-center">
+        <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 h-14 flex items-center justify-between">
           <button
             onClick={onHome}
             className="flex items-center gap-2 shrink-0 group"
@@ -18,6 +20,13 @@ export default function WebShell({ children, onHome }) {
               Second&nbsp;Life
             </span>
           </button>
+          {guest && (
+            <span className="flex items-center gap-1.5 rounded-full bg-white/10 ring-1 ring-white/15 px-3 py-1 text-[12px] font-700 leading-none">
+              <span className="w-1.5 h-1.5 rounded-full bg-sl-green-soft" />
+              {guest.id}
+              {guest.role && <span className="text-white/45 font-600">· {ROLE_LABEL[guest.role] || guest.role}</span>}
+            </span>
+          )}
         </div>
         <div className="h-px bg-az-orange/70" />
       </header>

@@ -27,7 +27,16 @@ import MyResells from "./screens/MyResells";
 // Each inbox item drives a dedicated flow. SL-001 is the ⭐ spine; the rest are
 // the MT4 supporting beats. Anything not mapped here stays QUEUED in the inbox.
 const LANE = { "SL-002": "radar", "SL-003": "diagnose", "SL-004": "rto" };
-const PERSONA = "rahul";
+// Shared sample storefront data (cart / orders / notifications / size advice) is the
+// same for every guest — they're browsing the same seeded catalog.
+const SAMPLE = "rahul";
+
+// A guest gets a UNIQUE id the first time they pick a role on the landing, so their
+// resell listings ("My resells") are distinct from neighbours' ("Flash deals") and a
+// return is attributed to them on the shared Ops desk. Persisted per browser.
+function genGuestId() {
+  return "Guest-" + Math.random().toString(36).slice(2, 6).toUpperCase();
+}
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -52,6 +61,24 @@ export default function App() {
   const [advice, setAdvice] = useState(null); // size-advice payload for the PDP
   const [returns, setReturns] = useState(null); // MT10 Ops returns desk (server /returns)
   const [localReturns, setLocalReturns] = useState([]); // buyer-initiated this session (instance-proof)
+
+  // Guest identity — unique per browser, set when a role is picked on the landing.
+  // Used for resell ownership + return attribution; storefront reads still use SAMPLE.
+  const [guest, setGuest] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("sl_guest")) || null; } catch { return null; }
+  });
+  useEffect(() => {
+    if (guest) localStorage.setItem("sl_guest", JSON.stringify(guest));
+  }, [guest]);
+  const me = guest?.id || SAMPLE; // resell owner / return source
+  // Pick a role on the landing → set identity (mint a unique id on first pick).
+  function pickRole(role) {
+    setGuest((g) => (g && g.id ? { ...g, role } : { id: genGuestId(), role }));
+  }
+  // Mint a fresh identity (lets a presenter simulate a second neighbour in one browser).
+  function newGuest() {
+    setGuest({ id: genGuestId(), role: guest?.role || "buyer" });
+  }
 
   // MT10 resell flow (order-history Resell → confirm → photo → price/range → list)
   const [resellItem, setResellItem] = useState(null);
@@ -96,7 +123,7 @@ export default function App() {
       }
     })();
     refreshMetrics();
-    api.cart(PERSONA).then(setCart).catch(() => {});
+    api.cart(SAMPLE).then(setCart).catch(() => {});
   }, []);
 
   function refreshMetrics() {
@@ -320,15 +347,15 @@ export default function App() {
     setScreen("buyer");
     if (!buyerOrders) {
       setOrdersLoading(true);
-      api.orders(PERSONA).then((d) => setBuyerOrders(d.orders)).catch(() => setBuyerOrders([])).finally(() => setOrdersLoading(false));
+      api.orders(SAMPLE).then((d) => setBuyerOrders(d.orders)).catch(() => setBuyerOrders([])).finally(() => setOrdersLoading(false));
     }
     if (!cart) {
       setCartLoading(true);
-      api.cart(PERSONA).then(setCart).catch(() => setCart({ lines: [], total: 0, count: 0 })).finally(() => setCartLoading(false));
+      api.cart(SAMPLE).then(setCart).catch(() => setCart({ lines: [], total: 0, count: 0 })).finally(() => setCartLoading(false));
     }
     if (!notifications) {
       setNotifLoading(true);
-      api.notifications(PERSONA).then((d) => setNotifications(d.notifications)).catch(() => setNotifications([])).finally(() => setNotifLoading(false));
+      api.notifications(SAMPLE).then((d) => setNotifications(d.notifications)).catch(() => setNotifications([])).finally(() => setNotifLoading(false));
     }
   }
 
@@ -351,7 +378,7 @@ export default function App() {
     setErr(null);
     setBusy(true);
     try {
-      const a = await api.sizeAdvice(gridItem.asin, PERSONA);
+      const a = await api.sizeAdvice(gridItem.asin, SAMPLE);
       setAdvice(a);
       setScreen("pdp");
     } catch (e) {
@@ -365,7 +392,7 @@ export default function App() {
   async function buyPdp(size) {
     setBusy(true);
     try {
-      const c = await api.addToCart(PERSONA, advice.asin, size);
+      const c = await api.addToCart(SAMPLE, advice.asin, size);
       setCart(c);
       setOrigin("buyer");
       setBuyerTab("cart");
@@ -386,7 +413,7 @@ export default function App() {
     setErr(null);
     setCheckoutBusy(true);
     try {
-      const co = await api.checkout(PERSONA);
+      const co = await api.checkout(SAMPLE);
       setCheckout(co);
       setScreen("checkout");
     } catch (e) {
@@ -399,12 +426,12 @@ export default function App() {
   async function confirmCheckout() {
     setCheckoutBusy(true);
     try {
-      const co = await api.checkout(PERSONA, true);
+      const co = await api.checkout(SAMPLE, true);
       // The cart is a per-instance overlay, so a confirm landing on a different
       // warm Lambda could recompute a different total/order id. Keep the order id +
       // amount the user actually approved; the confirm only flips status to success.
       setCheckout((prev) => ({ ...co, order_id: prev.order_id, amount: prev.amount }));
-      const fresh = await api.cart(PERSONA).catch(() => null);
+      const fresh = await api.cart(SAMPLE).catch(() => null);
       if (fresh) setCart(fresh);
     } catch (e) {
       setErr({ message: `Couldn't confirm payment (${e.detail || e.message}).`, retry: confirmCheckout });
@@ -437,7 +464,7 @@ export default function App() {
     });
     // Persist to the server store too (best-effort) so an Ops-desk refetch sees it.
     api.addReturn({
-      persona: PERSONA,
+      persona: me,
       order_id: order.order_id,
       asin: order.asin,
       title: order.title,
@@ -505,7 +532,7 @@ export default function App() {
   async function resellList({ ask_price, range_km }) {
     setBusy(true);
     try {
-      await api.createListing({ item_id: resellItem.item_id, persona: PERSONA, ask_price, range_km });
+      await api.createListing({ item_id: resellItem.item_id, persona: me, ask_price, range_km });
       setToast({
         title: "Listed on Flash deals",
         message: `${resellItem.title} · ${inr(ask_price)} — buyers within ${range_km} km can tap “I'm interested”.`,
@@ -561,13 +588,20 @@ export default function App() {
   if (screen === "home") {
     return (
       <div className="anim-fade-in">
-        <Home onOps={openOps} onBuyer={() => openBuyer("shop")} onSeller={openSeller} />
+        <Home
+          guest={guest}
+          onPickRole={pickRole}
+          onNewGuest={newGuest}
+          onOps={() => { pickRole("ops"); openOps(); }}
+          onBuyer={() => { pickRole("buyer"); openBuyer("shop"); }}
+          onSeller={() => { pickRole("seller"); openSeller(); }}
+        />
       </div>
     );
   }
 
   return (
-    <WebShell onHome={goHome}>
+    <WebShell onHome={goHome} guest={guest}>
       <div key={screen} className="anim-fade-in">
         {screen === "inbox" && (
           <Inbox
@@ -600,8 +634,8 @@ export default function App() {
             onReturn={returnOrder}
             onCheckout={openCheckout}
             onNotif={openNotif}
-            onFlash={<FlashDeals persona={PERSONA} />}
-            onResells={<MyResells persona={PERSONA} onToast={setToast} />}
+            onFlash={<FlashDeals persona={me} />}
+            onResells={<MyResells persona={me} onToast={setToast} />}
             onBack={goHome}
           />
         )}

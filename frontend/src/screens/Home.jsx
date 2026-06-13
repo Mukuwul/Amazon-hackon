@@ -1,11 +1,26 @@
+import { useState } from "react";
+
 // Landing page — the original dark "stage" identity restored. Brand rail on the
 // left (every product finds its next best owner + the live-engine line); where the
 // phone used to sit, three buttons forward into the console: Returns desk (Ops) ·
 // Buyer · Seller. No top bar here — the slim Amazon chrome appears only after you
 // pick a view (WebShell wraps the inner pages, not this landing).
-export default function Home({ onOps, onBuyer, onSeller }) {
+//
+// Top-right: a guest login. Picking a role mints a UNIQUE per-browser id (so resell
+// "My resells" vs "Flash deals" and return attribution are distinct per person); the
+// id sticks while the three big buttons forward into each view.
+const ROLES = [
+  { key: "buyer", label: "Buyer", hint: "shop + resell what you own" },
+  { key: "seller", label: "Seller", hint: "see returns + the AI fix" },
+  { key: "ops", label: "Returns desk", hint: "grade + route returns" },
+];
+
+export default function Home({ onOps, onBuyer, onSeller, guest, onPickRole, onNewGuest }) {
   return (
-    <div className="stage-bg stage-grain min-h-[100dvh] w-full flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 p-6 sm:p-8">
+    <div className="stage-bg stage-grain relative min-h-[100dvh] w-full flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 p-6 sm:p-8">
+      <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
+        <GuestMenu guest={guest} onPickRole={onPickRole} onNewGuest={onNewGuest} />
+      </div>
       {/* brand rail — context that this is a layer inside Amazon */}
       <aside className="flex flex-col max-w-sm text-white/90">
         <div className="flex items-center gap-2 mb-7">
@@ -86,6 +101,78 @@ function ViewButton({ onClick, label, role, icon, primary }) {
         <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
+  );
+}
+
+function GuestMenu({ guest, onPickRole, onNewGuest }) {
+  const [open, setOpen] = useState(false);
+  const roleLabel = guest?.role ? ROLES.find((r) => r.key === guest.role)?.label : null;
+
+  return (
+    <div className="relative">
+      {open && <button className="fixed inset-0 z-0 cursor-default" aria-label="Close" onClick={() => setOpen(false)} />}
+      <button
+        onClick={() => setOpen((o) => !o)}
+        className="relative z-10 flex items-center gap-2 rounded-full bg-white/[0.08] ring-1 ring-white/15 px-3.5 py-2 text-white/90 text-[13px] font-700 hover:bg-white/[0.13] hover:ring-white/30 transition"
+      >
+        <UserIcon />
+        {guest ? (
+          <span className="flex items-center gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-sl-green-soft" />
+            {guest.id}
+            {roleLabel && <span className="text-white/45 font-600">· {roleLabel}</span>}
+          </span>
+        ) : (
+          <span>Sign in as guest</span>
+        )}
+        <svg viewBox="0 0 24 24" className={`w-3.5 h-3.5 opacity-60 transition ${open ? "rotate-180" : ""}`} fill="none">
+          <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 mt-2 z-10 w-60 rounded-2xl bg-[#10151c] ring-1 ring-white/12 shadow-pop p-1.5 anim-fade-up">
+          <p className="px-3 pt-2 pb-1.5 text-[10.5px] font-800 uppercase tracking-wider text-white/35">
+            {guest ? "Switch role" : "Continue as a guest"}
+          </p>
+          {ROLES.map((r) => {
+            const active = guest?.role === r.key;
+            return (
+              <button
+                key={r.key}
+                onClick={() => { onPickRole(r.key); setOpen(false); }}
+                className={`w-full text-left rounded-xl px-3 py-2.5 flex items-center gap-2.5 transition ${
+                  active ? "bg-sl-green/15 ring-1 ring-sl-green-soft/40" : "hover:bg-white/[0.06]"
+                }`}
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="block text-[13.5px] font-700 text-white leading-none">{r.label}</span>
+                  <span className="block mt-1 text-[11.5px] text-white/45 leading-none">{r.hint}</span>
+                </span>
+                {active && <span className="text-[10px] font-800 text-sl-green-soft">YOU</span>}
+              </button>
+            );
+          })}
+          {guest && (
+            <button
+              onClick={() => { onNewGuest(); setOpen(false); }}
+              className="w-full text-left rounded-xl px-3 py-2.5 mt-0.5 border-t border-white/8 text-[12px] font-600 text-white/55 hover:bg-white/[0.06] transition"
+            >
+              + New guest identity
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function UserIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.4" stroke="currentColor" strokeWidth="1.7" />
+      <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+    </svg>
   );
 }
 
