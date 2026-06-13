@@ -430,12 +430,19 @@ export default function App() {
     }
   }
 
+  // The landing owns the full-screen dark stage and has no top bar; every inner
+  // page lives inside the slim WebShell chrome.
+  if (screen === "home") {
+    return (
+      <div className="anim-fade-in">
+        <Home onOps={openOps} onBuyer={() => openBuyer("shop")} onSeller={openSeller} />
+      </div>
+    );
+  }
+
   return (
-    <WebShell onHome={goHome} cartCount={cart?.count || 0} onCart={() => openBuyer("cart")}>
+    <WebShell onHome={goHome}>
       <div key={screen} className="anim-fade-in">
-        {screen === "home" && (
-          <Home metrics={metrics} onOps={openOps} onBuyer={() => openBuyer("shop")} onSeller={openSeller} />
-        )}
         {screen === "inbox" && (
           <Inbox
             items={items}
