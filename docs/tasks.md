@@ -16,12 +16,14 @@ MVP-only. One MAJOR TASK = one Fable session. Owners: **A** = backend (me + Fabl
 - [ ] OBS/Loom recording test (C)
 - [ ] C starts citation verification for the `[VERIFY-C]` stats in docs/PRD.md
 
-## MT1 ⭐ — Seed store + Product Passport + Delta-Grader (A)
+## MT1 ⭐ — Seed store + Product Passport + Delta-Grader (A) ✅ DONE (commit be97d15)
 **Goal:** `POST /grade` returns real Nova-2 delta-grading JSON for seeded items, with cached fallback.
 Scope: `seed/` module (items/orders/neighbors JSON + images), passport event store (in-memory + DynamoDB behind env flag), multimodal extension of `llm.py`, grading prompt + Pydantic schema + retry-on-invalid-JSON, cache capture script, `GET /items`, `GET /items/{id}`.
 **Verify (done when):** local uvicorn: `POST /grade` for the shoe returns schema-valid JSON with ≥1 localized defect, confidence, same-unit block, `source: live-bedrock`; rerun with AWS creds removed → identical shape, `source: cached`; `GET /items` lists all seeded items. Grading consistency: same item graded 3× → same letter grade ≥2/3 (else tighten prompt before proceeding — this is the highest-risk item in the build, test in the first 6 hours).
+**Result:** all checks PASS, fresh verifier signed off. Hero shoe D/D/D (3/3 consistency). 2 placeholder items (SL-001 shoe, SL-002 monitor) with Commons images + cached grades; SL-003..008 metadata only (no images → `/grade` 502 until photos land). ⚠️ Discovered: deploy is IAM-blocked (see top of file + STATE.md).
 
 ## MT2 ⭐ — VRS engine + Health Card + RTO + Radar + Pricing + deploy (A)
+> ⚠️ **DEPLOY BLOCKER (resolve first):** CLI user `hackon-app` lacks ECR-push + `lambda:UpdateFunctionCode`. Either attach those IAM permissions to `hackon-app` or run `deploy.ps1` with admin creds — otherwise MT2's "deployed Function URL" verify cannot pass. The seed images (SL-001/002) and code are ready to ship the moment deploy works.
 **Goal:** every endpoint in docs/api-spec.md live on the Function URL.
 Scope: `vrs.py` (6 paths, breakdowns, eligibility, constants tuned: hero shoe shows warehouse ≈ −₹70 vs local ≈ +₹290), `pricing.py` (depreciation, decay, liquidity curve), `healthcard.py` (warranty months from seeded invoice), `/seal-check`, `/radar/{asin}`, `/price-curve`, `/diagnose-listing`, `/metrics`. Capture cached responses for all 8 items. Redeploy via `./deploy.ps1`.
 **Verify:** all api-spec curls pass against the **deployed** Function URL; `/route` on the shoe shows `local_p2p` winner with the hero math; `/seal-check` on SL-004 returns `SEALED_NEW`; cached fallback verified on at least one endpoint post-deploy.

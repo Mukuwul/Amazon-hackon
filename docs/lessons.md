@@ -2,6 +2,12 @@
 
 One lesson per entry, newest on top, one-line summary first. Read this every fresh session. Don't duplicate what CLAUDE.md/architecture.md already record.
 
+## MT1 (June 13)
+- **Deploy is blocked by IAM, not code.** The configured AWS CLI user `hackon-app` (account 656751413989) can invoke Bedrock (local grading works) but is **denied `ecr:GetAuthorizationToken`/ECR push and `lambda:UpdateFunctionCode`** → `deploy.ps1` builds fine, then fails at ECR login (400) and Lambda update (AccessDeniedException). A failed deploy changes nothing on the live function, so the demo path stays up — but **MT2 cannot ship to Lambda until `hackon-app` gets ECR-push + Lambda-deploy permissions, or deploy.ps1 is run with admin creds.** HUMAN TASK before MT2.
+- **Nova-2 multimodal converse: image blocks go in `content` as `{"image": {"format": "jpeg", "source": {"bytes": <raw bytes>}}}`** (raw bytes, not base64), text block last. Worked first try in ca-central-1.
+- **Grading consistency is solid at temperature=0.2**: hero shoe graded D/D/D across 3 live runs. The same-unit check is genuinely discriminative — placeholder current-photo (different shoe) correctly returned `same_unit.verified=false`; swap in real day-0-vs-now photos of the *same* unit before judging same-unit accuracy.
+- **Git on Windows rewrites LF→CRLF** on these files (harmless warning); seed `.jpg`/`.json` commit fine and bake into the container via `COPY app` in the Dockerfile.
+
 ## Pre-build gotchas (carried from boilerplate phase — verified the hard way)
 - **Bedrock throttles new accounts in us-east-1** → everything runs in ca-central-1.
 - **Nova 2 Lite needs the inference-profile ID** `us.amazon.nova-2-lite-v1:0` (fallback `global.amazon.nova-2-lite-v1:0`), not a bare model ID.
