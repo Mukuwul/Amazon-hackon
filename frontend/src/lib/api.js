@@ -1,0 +1,67 @@
+// Falls back to the deployed Function URL so the Vercel build works even if the
+// VITE_API_URL env var isn't set in the dashboard. Override locally via .env.local.
+const DEPLOYED = "https://ahwfmhaqed45p5xxk2u663oi6m0mejgi.lambda-url.ca-central-1.on.aws";
+const API_URL = (import.meta.env.VITE_API_URL || DEPLOYED).replace(/\/$/, "");
+
+async function req(path, { method = "GET", body } = {}) {
+  const res = await fetch(`${API_URL}${path}`, {
+    method,
+    headers: body ? { "Content-Type": "application/json" } : undefined,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = new Error(`HTTP ${res.status}`);
+    err.status = res.status;
+    try {
+      err.detail = (await res.json()).detail;
+    } catch {
+      /* non-JSON error body */
+    }
+    throw err;
+  }
+  return res.json();
+}
+
+export const api = {
+  base: API_URL,
+  health: () => req("/health"),
+  items: () => req("/items"),
+  item: (id) => req(`/items/${id}`),
+  grade: (id, forceCached) =>
+    req("/grade", { method: "POST", body: { item_id: id, force_cached: !!forceCached } }),
+  route: (id) => req("/route", { method: "POST", body: { item_id: id } }),
+  healthCard: (id) => req(`/health-card/${id}`),
+  sealCheck: (id) => req("/seal-check", { method: "POST", body: { item_id: id } }),
+  radar: (asin) => req(`/radar/${asin}`),
+  priceCurve: (id) => req(`/price-curve/${id}`),
+  diagnose: (asin) => req("/diagnose-listing", { method: "POST", body: { asin } }),
+  metrics: () => req("/metrics"),
+};
+
+// The in-memory passport is per-Lambda-instance: a cold start between calls
+// resets grade/route state and downstream endpoints 409. These re-run the
+// prerequisites once so the demo spine never breaks on a warm→cold swap.
+api.routeSafe = async (id, forceCached) => {
+  try {
+    return await api.route(id);
+  } catch (e) {
+    if (e.status === 409) {
+      await api.grade(id, forceCached);
+      return api.route(id);
+    }
+    throw e;
+  }
+};
+
+api.healthCardSafe = async (id, forceCached) => {
+  try {
+    return await api.healthCard(id);
+  } catch (e) {
+    if (e.status === 409) {
+      await api.grade(id, forceCached);
+      await api.route(id);
+      return api.healthCard(id);
+    }
+    throw e;
+  }
+};
