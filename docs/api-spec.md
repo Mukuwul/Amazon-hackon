@@ -22,6 +22,8 @@ Item detail + full passport event log.
 
 ## POST /grade
 Body: `{"item_id": "SL-001", "force_cached": false}` — photos come from the seed store (current photos for the item); `force_cached: true` skips the live call (stage safety toggle).
+
+**MT9 — uploaded current photos (hybrid):** optional `"current_images": ["<base64>", ...]` (≤3 images, ≤~1.5 MB each *decoded*; an optional `data:image/...;base64,` prefix is stripped server-side). When present, the AI grades the **uploaded** photos as the CURRENT set against the seeded catalog + day-0 baseline; absent → seeded current photos (today's path). Oversize/too-many/invalid uploads → `422`. The response gains `"graded_uploaded_photos": true|false`. The frontend downscales to ~1024px/~300 KB before sending.
 → `200`:
 ```json
 {
@@ -36,6 +38,7 @@ Body: `{"item_id": "SL-001", "force_cached": false}` — photos come from the se
   "needs_human_review": false,
   "source": "live-bedrock",
   "model": "us.amazon.nova-2-lite-v1:0",
+  "graded_uploaded_photos": false,
   "latency_ms": 1840
 }
 ```
@@ -51,7 +54,8 @@ Body: `{"item_id": "SL-001"}` (requires a prior grade; `409 {"detail": "grade re
   "paths": [
     {"path": "local_p2p", "recovery": 83, "eligible": true, "winner": true,
      "breakdown": {"sale_price": 125, "local_hop": -40, "payment_fee": -2},
-     "note": "3 matched buyers within 4 km", "distance_km": 2.7},
+     "note": "3 matched buyers within 4 km", "distance_km": 2.7,
+     "dark_store": {"id": "DS-14", "name": "Amazon Now · Koramangala", "distance_km": 2.7}},
     {"path": "warehouse_relist", "recovery": -129, "eligible": true, "winner": false,
      "breakdown": {"sale_price": 121, "reverse_ship": -120, "inspection": -40, "relist": -60, "fc_handling": -30}},
     {"path": "refurbish", "recovery": 0, "eligible": false, "winner": false, "note": "not economical to refurbish this item"},
@@ -64,7 +68,24 @@ Body: `{"item_id": "SL-001"}` (requires a prior grade; `409 {"detail": "grade re
   "km_saved": 597
 }
 ```
-Side effect: appends `ROUTED` event. Recovery figures scale with grade (B target ≈ local +₹279 vs warehouse +₹66); local_p2p wins at every grade for this item. Ineligible paths return `recovery: 0`, `eligible: false`, an empty `breakdown` omitted, and a `note`.
+Side effect: appends `ROUTED` event. Recovery figures scale with grade (B target ≈ local +₹279 vs warehouse +₹66); local_p2p wins at every grade for this item. Ineligible paths return `recovery: 0`, `eligible: false`, an empty `breakdown` omitted, and a `note`. *(MT8)* When `local_p2p` is eligible, its path object carries `dark_store: {id, name, distance_km}` — the nearest Amazon Now MFC from `seed/dark_stores.json` (nearest-distance), so the UI can name the open-box node instead of a generic "local hop."
+
+## GET /cascade/{item_id}  *(MT8 — derived value cascade)*
+The time-decay tier waterfall, **derived** from the VRS engine — NOT a fixed timer. Re-runs the argmax week-by-week as the −5%/wk decay erodes the resale price; emits a new tier whenever the winning channel changes; terminates at `donate` (CSR) once no monetary path clears the donate credit. Requires a prior grade (`409 {"detail": "grade required"}` otherwise). Pure-Python deterministic — **no AI call, so no cache and nothing that can fail live**. Backed by `cascade.py` (reuses `vrs.py` + `pricing.py`, no new economics).
+→ `200` (illustrative on the monitor SL-002 — channels and nets are computed live by the argmax at each decayed price; a ₹500 shoe yields a shorter waterfall, which is an honest result, not a bug):
+```json
+{
+  "item_id": "SL-002",
+  "tiers": [
+    {"week": 0,  "channel": "local_p2p",        "label": "Amazon Now dark store · open-box", "price": 1710, "net": 1632},
+    {"week": 4,  "channel": "warehouse_relist",  "label": "central marketplace",              "price": 1290, "net": 540},
+    {"week": 8,  "channel": "liquidate",         "label": "wholesale / bulk",                 "price": 384,  "net": 364},
+    {"week": 11, "channel": "donate",            "label": "donate · CSR certificate",         "price": 0,    "net": 96, "terminal": true}
+  ],
+  "decay_pct_per_week": 5
+}
+```
+Each `channel` is the live VRS winner at that week's decayed price; `net` equals that path's recovery. The frontend renders these as the cascade strip (dark-store → wider → wholesale → liquidate → donate). This is the visible answer to "how are items that DON'T go to a dark store handled?" — they are the tiers the cascade falls through.
 
 ## GET /health-card/{item_id}
 Requires grade + route (`409` otherwise).
@@ -118,6 +139,21 @@ Stateless read. Backed by `seed/seller_catalog.json` + `seller.py`.
 A persona's order history with a `resellable` flag (true when the ASIN has dormant units on the radar). The resellable order (monitor) feeds one-tap resell → `/radar` → `/price-curve`. `404` if the persona has no seeded history.
 → `200 {"persona": "rahul", "orders": [{"order_id": "171-8835520-SL002", "asin": "B0MONITOR1", "title": "NestCam Video Baby Monitor (5\" Display)", "purchase_date": "2024-11-02", "price_paid": 3200, "status": "delivered", "item_id": "SL-002", "resellable": true}, {"...stroller/crib...": "...", "item_id": null, "resellable": false}]}`
 Stateless read. Backed by `seed/orders.json → {persona}_order_history` + `orders.py`.
+
+## GET /cart/{persona}  *(MT9 — buyer storefront)*
+The persona's cart (per-Lambda-instance overlay, seeded from `seed/buyer.json`; a cold start resets to the seed). Total + count are computed server-side. `404` if the persona has no seeded storefront.
+→ `200 {"persona": "rahul", "lines": [{"asin": "B0SHOE500", "item_id": "SL-001", "title": "...", "category": "footwear", "size": "UK 9", "qty": 1, "price": 500, "thumb": "/items/SL-001/current_1.jpg"}, ...], "count": 2, "total": 1399}`
+
+## POST /cart/{persona}  *(MT9)*
+Body: `{"asin": "B0HDPHN880", "size": "UK 9"|null, "qty": 1}`. Appends a line (merges qty into an existing asin+size line); resolves title/price/thumb from the catalog. Returns the same shape as `GET /cart`. `404` if the asin isn't in the catalog or the persona has no storefront.
+
+## GET /notifications/{persona}  *(MT9)*
+Seeded notifications; the hero (`kind: "resell"`, `hero: true`) references the idle monitor (`SL-002` / `B0MONITOR1`) → a tap feeds the resell → `/radar` flow. `404` if none.
+→ `200 {"persona": "rahul", "notifications": [{"id": "n-resell", "kind": "resell", "hero": true, "asin": "B0MONITOR1", "item_id": "SL-002", "title": "...", "body": "...", "cta": "Resell now", "ts": "just now"}, {"kind": "price_drop"|"delivery", ...}]}`
+
+## POST /checkout/{persona}  *(MT9 — demo UPI)*
+Body: `{"confirm": false}`. No real payment — an API-returned UPI collect request. `confirm: false` → `status: "pending"`; `confirm: true` → `status: "success"` and the cart is emptied. `amount` = current cart total; `upi_vpa` from the seed. `404` if the persona has no storefront. The frontend keeps the order id + amount the user approved across the pending→success flip (the cart is per-instance, so a confirm on another warm instance could otherwise recompute a different total).
+→ `200 {"persona": "rahul", "order_id": "171-7697281-SL", "amount": 1399, "upi_vpa": "rahul@okhdfc", "status": "pending"|"success"}`
 
 ## GET /metrics
 Running demo counters (from passport events this session + seeded baseline).

@@ -19,16 +19,16 @@ const LANE = {
 
 function StageToggle({ value, onChange }) {
   return (
-    <div className="flex items-center rounded-full bg-white/10 p-0.5 text-[10px] font-700 leading-none">
+    <div className="flex items-center rounded-full bg-white ring-1 ring-sl-line p-0.5 text-[10px] font-700 leading-none">
       <button
         onClick={() => onChange(false)}
-        className={`px-2 py-1 rounded-full transition ${!value ? "bg-sl-green text-white" : "text-white/55"}`}
+        className={`px-2.5 py-1 rounded-full transition ${!value ? "bg-sl-green text-white" : "text-sl-muted"}`}
       >
         LIVE
       </button>
       <button
         onClick={() => onChange(true)}
-        className={`px-2 py-1 rounded-full transition ${value ? "bg-az-orange text-az-navy" : "text-white/55"}`}
+        className={`px-2.5 py-1 rounded-full transition ${value ? "bg-az-orange text-az-navy" : "text-sl-muted"}`}
       >
         CACHED
       </button>

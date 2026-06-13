@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { api } from "./lib/api";
-import PhoneFrame from "./components/PhoneFrame";
+import WebShell from "./components/WebShell";
 import RadarToast from "./components/RadarToast";
 import { ErrorNote } from "./components/ui";
 import { inr } from "./lib/format";
@@ -15,13 +15,15 @@ import SealLane from "./screens/SealLane";
 import DiagnoseScreen from "./screens/DiagnoseScreen";
 import MetricsScreen from "./screens/MetricsScreen";
 import Home from "./screens/Home";
-import BuyerHome from "./screens/BuyerHome";
+import BuyerStore from "./screens/BuyerStore";
 import Pdp from "./screens/Pdp";
+import Checkout from "./screens/Checkout";
 import SellerDashboard from "./screens/SellerDashboard";
 
 // Each inbox item drives a dedicated flow. SL-001 is the ⭐ spine; the rest are
 // the MT4 supporting beats. Anything not mapped here stays QUEUED in the inbox.
 const LANE = { "SL-002": "radar", "SL-003": "diagnose", "SL-004": "rto" };
+const PERSONA = "rahul";
 
 export default function App() {
   const [screen, setScreen] = useState("home");
@@ -29,11 +31,17 @@ export default function App() {
   const [metrics, setMetrics] = useState(null);
   const [itemsLoading, setItemsLoading] = useState(true);
 
-  // MT7 — which persona view the current sub-flow belongs to, so shared screens
-  // (radar, diagnose) return to the right home.
+  // persona views (buyer / seller) so shared screens return to the right home.
   const [origin, setOrigin] = useState("ops");
+  const [buyerTab, setBuyerTab] = useState("shop");
   const [buyerOrders, setBuyerOrders] = useState(null);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [cart, setCart] = useState(null);
+  const [cartLoading, setCartLoading] = useState(false);
+  const [notifications, setNotifications] = useState(null);
+  const [notifLoading, setNotifLoading] = useState(false);
+  const [checkout, setCheckout] = useState(null);
+  const [checkoutBusy, setCheckoutBusy] = useState(false);
   const [sellerData, setSellerData] = useState(null);
   const [sellerLoading, setSellerLoading] = useState(false);
   const [busyAsin, setBusyAsin] = useState(null);
@@ -61,7 +69,7 @@ export default function App() {
     localStorage.setItem("sl_force_cached", forceCached ? "1" : "0");
   }, [forceCached]);
 
-  // load inbox + warm the lambda
+  // load inbox + cart count + warm the lambda
   useEffect(() => {
     api.health().catch(() => {});
     (async () => {
@@ -75,6 +83,7 @@ export default function App() {
       }
     })();
     refreshMetrics();
+    api.cart(PERSONA).then(setCart).catch(() => {});
   }, []);
 
   function refreshMetrics() {
@@ -137,15 +146,15 @@ export default function App() {
   }
 
   // --- spine (SL-001) ---
-  async function runScan() {
+  async function runScan(currentImages) {
     setErr(null);
     setBusy(true);
     try {
-      const g = await api.grade(item.item_id, forceCached);
+      const g = await api.grade(item.item_id, forceCached, currentImages);
       setGrade(g);
       setScreen("grade");
     } catch (e) {
-      setErr({ message: `Grading failed (${e.detail || e.message}).`, retry: runScan });
+      setErr({ message: `Grading failed (${e.detail || e.message}).`, retry: () => runScan(currentImages) });
     } finally {
       setBusy(false);
     }
@@ -242,7 +251,7 @@ export default function App() {
     setScreen("inbox");
   }
 
-  // --- MT7: persona console ---
+  // --- persona console nav ---
   function originHome() {
     return origin === "buyer" ? "buyer" : origin === "seller" ? "seller" : "inbox";
   }
@@ -262,17 +271,22 @@ export default function App() {
     setScreen("inbox");
   }
 
-  function openBuyer() {
+  function openBuyer(tab = "shop") {
     setErr(null);
     setOrigin("buyer");
+    setBuyerTab(tab);
     setScreen("buyer");
     if (!buyerOrders) {
       setOrdersLoading(true);
-      api
-        .orders("rahul")
-        .then((d) => setBuyerOrders(d.orders))
-        .catch(() => setBuyerOrders([]))
-        .finally(() => setOrdersLoading(false));
+      api.orders(PERSONA).then((d) => setBuyerOrders(d.orders)).catch(() => setBuyerOrders([])).finally(() => setOrdersLoading(false));
+    }
+    if (!cart) {
+      setCartLoading(true);
+      api.cart(PERSONA).then(setCart).catch(() => setCart({ lines: [], total: 0, count: 0 })).finally(() => setCartLoading(false));
+    }
+    if (!notifications) {
+      setNotifLoading(true);
+      api.notifications(PERSONA).then((d) => setNotifications(d.notifications)).catch(() => setNotifications([])).finally(() => setNotifLoading(false));
     }
   }
 
@@ -305,13 +319,56 @@ export default function App() {
     }
   }
 
-  function buyPdp(size) {
-    setToast({
-      title: "Added to cart",
-      message: size
-        ? `${advice.title} · size ${size} — the size most buyers kept.`
-        : `${advice.title} added to your cart.`,
-    });
+  // PDP add-to-cart → real /cart write, then land in the cart
+  async function buyPdp(size) {
+    setBusy(true);
+    try {
+      const c = await api.addToCart(PERSONA, advice.asin, size);
+      setCart(c);
+      setOrigin("buyer");
+      setBuyerTab("cart");
+      setScreen("buyer");
+      setToast({
+        title: "Added to cart",
+        message: size ? `${advice.title} · size ${size} — the size most buyers kept.` : `${advice.title} added to your cart.`,
+      });
+    } catch (e) {
+      setErr({ message: `Couldn't add to cart (${e.detail || e.message}).` });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  // cart → UPI checkout (pending) → confirm (success)
+  async function openCheckout() {
+    setErr(null);
+    setCheckoutBusy(true);
+    try {
+      const co = await api.checkout(PERSONA);
+      setCheckout(co);
+      setScreen("checkout");
+    } catch (e) {
+      setErr({ message: `Couldn't start checkout (${e.detail || e.message}).`, retry: openCheckout });
+    } finally {
+      setCheckoutBusy(false);
+    }
+  }
+
+  async function confirmCheckout() {
+    setCheckoutBusy(true);
+    try {
+      const co = await api.checkout(PERSONA, true);
+      // The cart is a per-instance overlay, so a confirm landing on a different
+      // warm Lambda could recompute a different total/order id. Keep the order id +
+      // amount the user actually approved; the confirm only flips status to success.
+      setCheckout((prev) => ({ ...co, order_id: prev.order_id, amount: prev.amount }));
+      const fresh = await api.cart(PERSONA).catch(() => null);
+      if (fresh) setCart(fresh);
+    } catch (e) {
+      setErr({ message: `Couldn't confirm payment (${e.detail || e.message}).`, retry: confirmCheckout });
+    } finally {
+      setCheckoutBusy(false);
+    }
   }
 
   // buyer: order history → one-tap resell (RECIRCULATE) → reuses the radar lane
@@ -345,6 +402,15 @@ export default function App() {
     });
   }
 
+  // notification tap → the idle-monitor nudge resells; the rest are informational
+  function openNotif(n) {
+    if (n.kind === "resell" && n.item_id) {
+      resellOrder({ item_id: n.item_id, asin: n.asin, title: n.title, resellable: true });
+    } else {
+      setToast({ title: n.title, message: n.body });
+    }
+  }
+
   // seller: tap a high-return SKU → diagnose drill-down (PREVENT) → reuses DiagnoseScreen
   async function openSellerDiagnose(sku) {
     setErr(null);
@@ -365,10 +431,10 @@ export default function App() {
   }
 
   return (
-    <PhoneFrame>
-      <div key={screen} className="h-full anim-fade-in">
+    <WebShell onHome={goHome} cartCount={cart?.count || 0} onCart={() => openBuyer("cart")}>
+      <div key={screen} className="anim-fade-in">
         {screen === "home" && (
-          <Home metrics={metrics} onOps={openOps} onBuyer={openBuyer} onSeller={openSeller} />
+          <Home metrics={metrics} onOps={openOps} onBuyer={() => openBuyer("shop")} onSeller={openSeller} />
         )}
         {screen === "inbox" && (
           <Inbox
@@ -383,19 +449,36 @@ export default function App() {
           />
         )}
         {screen === "buyer" && (
-          <BuyerHome
+          <BuyerStore
             items={items}
+            cart={cart}
+            cartLoading={cartLoading}
             orders={buyerOrders}
             ordersLoading={ordersLoading}
+            notifications={notifications}
+            notifLoading={notifLoading}
             busy={busy}
+            tab={buyerTab}
+            onTab={setBuyerTab}
             onOpenPdp={openPdp}
             onResell={resellOrder}
             onReturn={returnOrder}
+            onCheckout={openCheckout}
+            onNotif={openNotif}
             onBack={goHome}
           />
         )}
         {screen === "pdp" && advice && (
-          <Pdp advice={advice} onBuy={buyPdp} onBack={() => setScreen("buyer")} />
+          <Pdp advice={advice} busy={busy} onBuy={buyPdp} onBack={() => setScreen("buyer")} />
+        )}
+        {screen === "checkout" && checkout && (
+          <Checkout
+            checkout={checkout}
+            confirming={checkoutBusy}
+            onConfirm={confirmCheckout}
+            onDone={() => openBuyer("shop")}
+            onBack={() => { setBuyerTab("cart"); setScreen("buyer"); }}
+          />
         )}
         {screen === "seller" && (
           <SellerDashboard
@@ -455,22 +538,24 @@ export default function App() {
 
       {/* global error */}
       {err && (
-        <div className="absolute inset-x-0 bottom-0 z-[60]">
-          <ErrorNote
-            onRetry={
-              err.retry
-                ? () => {
-                    const r = err.retry;
-                    setErr(null);
-                    r();
-                  }
-                : undefined
-            }
-          >
-            {err.message}
-          </ErrorNote>
+        <div className="fixed inset-x-0 bottom-0 z-[60] px-4 pb-4">
+          <div className="mx-auto max-w-md">
+            <ErrorNote
+              onRetry={
+                err.retry
+                  ? () => {
+                      const r = err.retry;
+                      setErr(null);
+                      r();
+                    }
+                  : undefined
+              }
+            >
+              {err.message}
+            </ErrorNote>
+          </div>
         </div>
       )}
-    </PhoneFrame>
+    </WebShell>
   );
 }

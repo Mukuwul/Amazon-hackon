@@ -1,9 +1,9 @@
 export default function RadarToast({ title = "Idle Asset Radar · ping sent", message, onClose }) {
   if (!message) return null;
   return (
-    <div className="absolute inset-x-0 bottom-0 z-50 px-4 pb-5">
+    <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-5">
       <div
-        className="relative overflow-hidden rounded-2xl bg-sl-green-deep text-white shadow-pop px-4 py-3.5 flex items-center gap-3.5"
+        className="relative overflow-hidden rounded-2xl bg-sl-green-deep text-white shadow-pop px-4 py-3.5 flex items-center gap-3.5 mx-auto max-w-md"
         style={{ animation: "slideUpToast 0.55s cubic-bezier(0.22,1,0.36,1) both" }}
       >
         {/* radar ping */}

@@ -50,5 +50,99 @@ Scope: cached responses verified for all items × all AI endpoints; kill-switch 
 Scope: `[VERIFY-C]` citations resolved in PRD; PRD mapped onto the official submission template section-by-section; 3-min video recorded per docs/demo-and-prfaq.md (+ backup recording); architecture diagram exported; team intro with personality; submit; dry-run pitch.
 **Verify:** video ≤3:00, opens with Priya hook, shows live grade + VRS math + Health Card + radar ping; every template section answered; submission confirmed before deadline with ≥2h buffer.
 
+## MT7 — Two-sided console: Prevent + Recirculate (Buyer hub + Seller dashboard) (A backend + B/Fable frontend)
+**Why this exists:** today the demo tells ONE story — *return → recover value* (the live spine). MT7 widens it to the full lifecycle a product can hit, which is a stronger pitch and directly answers the PS ("Products Without a Second Chance"): **Prevent → Recover → Recirculate.** Recover is the existing spine; MT7 adds Prevent (seller return-rate dashboard + buyer size social proof) and Recirculate (buyer order-history → one-tap resell, the Rahul beat with a proper origin). Decided in the June 13 brainstorm session.
+
+**THE IRON RULE STILL HOLDS — mock the DATA, not the ARCHITECTURE.** Every new number on screen comes from a real endpoint, NOT hardcoded JSX. For features with no real computation (size proof, seller return counts) the honest cheap path is a **seed JSON file + a one-line FastAPI route that returns it** (~15 min each). This keeps the frontend identical to the spine, survives a judge opening the network tab, and keeps MT5's bulletproof audit clean. Hardcoded JSX is the explicit fallback ONLY where genuinely nothing varies. Do NOT special-case "fake" components.
+
+**Goal:** a persona switch on the phone frame reaches three views — **Returns-ops** (existing inbox/spine, unchanged), **Buyer hub**, **Seller dashboard** — all clickable end-to-end on Vercel against the deployed backend, every figure API-backed.
+
+### Scope — Buyer hub (persona = Rahul)
+1. **Browse / "add product" (buy view)** — a small storefront from seed items → **PDP** screen with:
+   - **Size social proof block** ("68% of size UK-9 buyers ordered one size up") — applies to footwear/apparel (SL-001 shoe, SL-003 kurta). NEW endpoint `GET /size-advice/{asin}` backed by NEW `seed/size_signals.json` (per-asin size distribution + "% went one up/down" + recommendation copy). This is the buyer-side PREVENT moment (fewer fit returns).
+   - Second Life buyback/resale hint ("resells for ~₹X near you later") — reuse `pricing.resale_value` or fold into size-advice payload; keep it API-backed.
+   - "Add to cart / Buy" — visual only is fine (no order persistence required for the demo); if you want it to land in order history, append to an in-memory list.
+2. **Order history** — Rahul's real orders already live in `seed/orders.json → rahul_order_history` (monitor `B0MONITOR1`/SL-002, stroller `B0STRLLR03`, crib `B0CRIB0042`). Expose via NEW `GET /orders/{persona}` (currently only `radar.py` reads orders.json internally — just surface it). Each order row → **Return** | **Resell**.
+   - **One-tap Resell** on the monitor → flows straight into the EXISTING `RadarScreen` (`/radar/B0MONITOR1`) → `LiquidityScreen` (`/price-curve/SL-002`) → ping toast. This is the Rahul beat — MT4 built the destination, MT7 builds the natural entry point.
+
+### Scope — Seller dashboard
+1. **Catalog return-rate view** — the seller's SKUs sorted worst-first, each with units sold / returns / return-rate% / top return reason. NEW `seed/seller_catalog.json` + NEW `GET /seller/returns`. Hero high-return SKU = the kurta (SL-003, "colour not as shown" — DiagnoseScreen already cites 18 returns); shoe (SL-001, "size too small") is a second.
+2. **Tap a high-return SKU → "Why this gets returned"** — REUSE the existing `/diagnose-listing` (already returns return reasons + navy→royal swatch fix + the −40% projected drop for SL-003). Show the reasons breakdown + AI-recommended fix + projected return-rate drop. This is the seller-side PREVENT moment.
+
+### Backend work (thin, seed-backed — redeploy required, unlike MT4)
+- NEW `seed/size_signals.json` + `size.py` (or fold into `seed.py`) → `GET /size-advice/{asin}`
+- NEW `seed/seller_catalog.json` + `seller.py` → `GET /seller/returns` (drill-down reuses `/diagnose-listing`)
+- NEW `GET /orders/{persona}` exposing `orders.json` rahul_order_history (reuse `radar.py`'s loader)
+- Register new routers in `app/main.py`; **redeploy via `backend/deploy.ps1`** (Docker running) — MT7 is NOT frontend-only. Document the 3 new endpoints in `docs/api-spec.md` and `docs/architecture.md` as part of this task.
+
+### Frontend work (reuse MT3 design system, ZERO new deps)
+- **Persona switcher** in `TopBar.jsx`/`PhoneFrame.jsx` (pill: Buyer · Seller · Ops) OR a small Home launcher in `App.jsx`. Existing inbox = the "Ops" view, untouched.
+- NEW screens in `frontend/src/screens/`: `BuyerHome` (browse grid + order-history tabs), `Pdp` (size proof), `SellerDashboard` (return-rate list). REUSE `RadarScreen`/`LiquidityScreen` (resell) and `DiagnoseScreen` (seller why-drilldown).
+- `lib/api.js`: add `sizeAdvice(asin)`, `sellerReturns()`, `orders(persona)`; follow the existing `*Safe` cold-start-retry pattern if any new call has a passport prereq (these don't — they're stateless reads).
+
+**Verify (done when):** persona switch reaches all three views with no dead ends; buyer PDP size proof + order-history → one-tap resell → radar/liquidity → ping all work; seller dashboard → tap high-return SKU → diagnose drill-down works; **every new number traces to an endpoint (curl each new route against the Function URL first)**; spine (SL-001) regression-clean; build clean, zero new deps; walked via chrome-devtools on localhost AND the live Vercel URL; new endpoints documented in api-spec.md + architecture.md.
+
+**SEQUENCING:** Build MT7 the **next session** (it's net-new feature scope, and you have runway). Then **MT5** bulletproofs *everything including the MT7 screens* (cached responses for the new AI-touching paths, loading/error states, kill-switch). Then **MT6** submits — and the 3-min beat sheet in docs/demo-and-prfaq.md MAY extend to show one Prevent moment + the Recirculate origin (keep the spine the centrepiece; these are bookends, not replacements). MT7 does not touch the locked spine.
+
+## MT8 — Dark-store node + derived value cascade (A backend + B/Fable frontend)
+**Why this exists:** the demo proves *recovery* and *recirculation*, but the mental model judges arrive with (from Optoro/ReturnPro, and the returns-recommerce reference doc) is a tiered **waterfall**: "dark store → wholesale → liquidation over time." We already compute that economically — the VRS argmax (which channel) plus −5%/wk time-decay pricing (how value erodes). MT8 composes them into ONE legible artifact, **without touching the spine**. It also gives a visible answer to the standing question *"how are items that DON'T go to a dark store handled?"* — they are the lower tiers the cascade falls through. Decided in the June 13 brainstorm (this session).
+
+**IRON RULE HELD — mock the DATA, not the ARCHITECTURE.** No hardcoded JSX. The dark-store id comes from a NEW `seed/dark_stores.json` via nearest-distance; the cascade is **derived** by re-running the existing VRS engine over a decaying price, never a hardcoded timeline.
+
+**Goal:** RouteScreen names the hyperlocal winner as an Amazon Now dark-store node, and a new cascade strip shows the **derived** tier waterfall (dark-store → wider → wholesale → liquidate → donate) with the real week + price at each step — every figure API-backed, spine (SL-001) regression-clean, on Vercel against the deployed backend.
+
+### Scope — Move 1: name the dark-store node (thin backend + frontend)
+- NEW `seed/dark_stores.json` — 4–5 Amazon Now MFCs `{id, name, area, lat, lng}` (the reference doc's "hardcoded map of 4–5 dark stores with lat-long").
+- `vrs.py`: when `local_p2p` is eligible, attach `dark_store: {id, name, distance_km}` (nearest MFC to the item's locale) to that path object — see api-spec.md `/route`.
+- Frontend `RouteScreen`: render "→ Amazon Now dark store DS-14 · list open-box · ₹X" on the local_p2p winner.
+
+### Scope — Move 2: the derived cascade strip (thin backend + frontend) — THE CENTREPIECE
+- NEW `cascade.py` + `GET /cascade/{item_id}` (requires grade; `409` otherwise). Re-runs the VRS argmax week-by-week under −5%/wk decay; emits a tier each time the winning channel flips; terminates at `donate` (CSR). Returns `{tiers: [{week, channel, label, price, net, terminal?}], decay_pct_per_week}` — see api-spec.md. **Pure-Python deterministic → NO cache needed** (can't fail live; nothing for MT5 to cache here). Reuses `vrs.py` + `pricing.py`, no new economics.
+- Frontend: NEW cascade-strip component, folded into `RouteScreen` below the path list — horizontal tiers from `/cascade`, each labelled channel + week + price; terminal tier flagged. Richest on the monitor (SL-002, more tiers before terminal); the shoe (SL-001) yields a shorter waterfall — an honest property of the economics, not a bug.
+- `lib/api.js`: add `cascade(id)`; if it can hit the cold-start 409, give it a `cascadeSafe` grade-prereq retry mirroring `routeSafe`.
+
+### Scope — Move 3: cross-dock "list-while-in-transit" animation (frontend-only, STRETCH)
+- On RouteScreen when local_p2p wins, a CSS-only motion beat: the parcel redirects from reverse-transit to "buyer 4 km away" instead of the 600 km round trip (the reference doc's "winning demo moment"). Zero deps. **Build ONLY if Moves 1–2 land with runway; drop cleanly otherwise.**
+
+### Backend work (thin, seed-backed — redeploy required, like MT7)
+- NEW `seed/dark_stores.json`; `dark_store` field on `vrs.py` `local_p2p`; NEW `cascade.py` + `GET /cascade/{item_id}`; register router in `app/main.py`; **redeploy via `backend/deploy.ps1`** (Docker up). `/cascade` + the `/route` `dark_store` field are already documented in docs/api-spec.md and docs/architecture.md §9 (written with this spec).
+
+### Frontend work (reuse MT3/MT4 design system, ZERO new deps)
+- `RouteScreen` dark-store label + cascade strip; optional cross-dock animation; `lib/api.js` `cascade(id)`. Reuses the existing palette, motion, and `ui` primitives.
+
+**Verify (done when):** `GET /cascade/{id}` curled against the Function URL returns a tier timeline whose `channel`/`net` at each week match the VRS argmax at that decayed price (derived, NOT fixed); `/route` local_p2p carries a `dark_store` from `dark_stores.json`; RouteScreen shows the dark-store label + cascade strip with every figure traceable to an endpoint (network tab clean); spine (SL-001) regression-clean; build clean, zero new deps; walked via chrome-devtools on localhost AND the live Vercel URL; `/cascade` + `dark_store` documented in api-spec.md + architecture.md.
+
+**UI NOTE (added with MT9, 2026-06-13):** MT8 now runs **after MT9 (web console redesign)**. The phone frame is gone — MT8's dark-store label + derived cascade strip render in the **web** `RouteScreen`, not a 390px phone column. Scope is otherwise unchanged (derived cascade via VRS argmax over −5%/wk decay; `seed/dark_stores.json`; `GET /cascade/{item_id}`). Read docs/superpowers/specs/2026-06-13-web-console-redesign-design.md before building MT8 so you target the right components.
+
+**SEQUENCING:** Build **MT9 first** (de-phone the demo), THEN MT8 (cascade into the web RouteScreen — net-new, additive, does NOT touch the spine). Then **MT5** bulletproofs everything incl. MT8's loading/error states (no AI cache for `/cascade` — it's deterministic). Then **MT6** submits; the beat sheet MAY add the cascade as the "terminal-state" close right after the VRS reveal (spine stays the centrepiece). MT8 is numbered after MT7 but runs after MT9, before MT5/MT6.
+
+## MT9 — Web console redesign: de-phone the demo (B frontend + A thin backend) ✅ DONE (this session)
+**Result:** all verify checks PASS, walked end-to-end via chrome-devtools on localhost against the **redeployed** backend (prod verify on push). Phone frame deleted; `WebShell` (Amazon-navy brand bar + `max-w-6xl` column) + light `TopBar` page header + de-phoned `.screen-scroll`/`.screen-page`. Home → web landing grid; `ItemIntro` → **two-pane scan station** with a real upload dropzone (`lib/image.js` canvas downscale → base64); new `BuyerStore` (Shop/Cart/Orders/Notifications) + `Checkout` (UPI) replace `BuyerHome`; `SellerDashboard` → wide return-rate table; spine/radar/liquidity/diagnose/health-card/metrics reused + widened, **logic untouched**. Backend: `/grade` `current_images` (≤3, ≤1.5 MB, 422 oversize/invalid, `graded_uploaded_photos` flag); `buyer.py` + `seed/buyer.json` → `/cart` (GET/POST), `/notifications`, `/checkout` (demo UPI pending→success, empties cart). Redeployed via deploy.ps1. **Verified:** uploaded SL-001 photo → `/grade` body had `current_images` → **live-bedrock** grade of the uploaded photo (`graded_uploaded_photos:true`) → spine reconciles (+₹83) → Health Card → radar ping; Shop→PDP fit proof→add-to-cart(server-merged)→UPI pending→success(order/amount preserved across confirm); Orders→resell→radar; Notifications→resell; Seller table→diagnose. **0 console errors, zero new deps, build 300 KB.** Fixed: confirm preserves the approved order id/amount (cart is per-instance). Endpoints + `/grade` field documented in api-spec.md + architecture.md §10.
+
+**Why this exists:** the demo works but is hard to read on stage — everything lives inside a single 390px **phone frame** and the navigation is dense. MT9 is a **presentation change, not a feature change**: re-house the existing console as a real **web** experience so a judge instantly understands it. Almost every feature already exists (the grade→route→health-card→radar spine, the size-proof PDP, the seller return dashboard, the resell→radar flow); MT9 reskins them as web pages and adds two genuinely new pieces — **photo upload on the grading page** and a fleshed-out **buyer storefront**. Decided + spec'd in the 2026-06-13 brainstorm. **FULL SPEC: docs/superpowers/specs/2026-06-13-web-console-redesign-design.md (read it first).**
+
+**Decisions locked:** (1) UI first, MT8 after; (2) **hybrid photo upload** — grade the actual uploaded current photos live (Nova→Gemini→cached floor), no upload → seeded current photos; (3) **all API-backed** — cart/notifications/orders/checkout via thin seed-JSON endpoints (iron rule holds); (4) one MT9, spine protected, edges cut from the bottom.
+
+**Approach — EVOLVE IN PLACE, do not rebuild.** Swap `PhoneFrame` for a `WebShell`, widen each screen from the fixed 390px column to a responsive page, add the buyer-storefront areas + the grading two-pane. **Keep** `App.jsx` state machine, `lib/api.js`, the Tailwind `@theme` tokens, the CSS animations, and ALL backend logic. **Zero new deps.** ⭐ Spine (SL-001) must stay regression-clean.
+
+### Scope (build order — spine first)
+1. **Shell + homepage** — new `WebShell` (Amazon-navy top bar over a centered `max-w-6xl` column); retire `.phone`/`.phone-screen`. Homepage = the **existing `Home.jsx` three-card concept, de-phoned** (Returns desk = start here · Rahul/Buyer · Vastram/Seller + the Prevent·Recover·Recirculate band), re-laid as a web landing. No new homepage concept.
+2. **Returns desk (AI-grading + spine)** — `ItemIntro` → **two-pane**: LEFT catalog + day-0 thumbnails (baseline), RIGHT **upload dropzone** + current-photo thumbs + "Run AI grade". Downstream `Grade` / `RouteScreen` / `HealthCard` / `RadarScreen` / `LiquidityScreen` / `SealLane` / `DiagnoseScreen` / `MetricsScreen` reused + widened, **logic untouched** (the protected spine; the side-by-side grade view gains room on web).
+3. **Buyer storefront (Rahul)** — Shop (grid→PDP, reuse `Pdp`) · Cart (`GET /cart/rahul`, seeded lines in the recommended size) · Orders (`/orders/rahul`, Return/Resell→existing radar flow) · Notifications (`GET /notifications/rahul`, hero "baby monitor — N buyers nearby, resell?"→radar). Buy → **UPI checkout** (`POST /checkout/rahul` → "Approve the payment in your UPI app" → success), API-returned.
+4. **Seller dashboard (Vastram)** — `SellerDashboard` → wide **return-rate table** (worst-first) from `/seller/returns`; tap SKU → `DiagnoseScreen` drill-down (`/diagnose-listing`). Web table, same data.
+5. **UI/UX polish** — buttons/hover/page transitions where they read better on web (never at the spine's expense).
+
+### Backend work (thin, seed-backed — REDEPLOY required, like MT7/MT8)
+- `/grade` accepts optional `current_images: list[str]` (base64; ≤3 imgs, ≤~1.5 MB each decoded; frontend downscales to ~1024px/~300 KB first; oversize → 422). `grading.grade_item(..., current_images=None)` uses them as the **current** set (catalog+day-0 still from seed), else seeded current. Hybrid fallback unchanged.
+- NEW `buyer.py` + `seed/buyer.json`: `GET /cart/{persona}`, `POST /cart/{persona}` (in-memory append, per-instance like the passport), `GET /notifications/{persona}`, `POST /checkout/{persona}` (`{order_id, amount, upi_vpa, status}`; pending→success).
+- Register routers in `app/main.py`; redeploy via `backend/deploy.ps1` (Docker up). **Document the new endpoints + the `/grade` `current_images` field in docs/api-spec.md and docs/architecture.md as part of the build.**
+
+### Frontend work (reuse MT3 design system, ZERO new deps)
+- New `WebShell`; `Home` → web landing; `ItemIntro` → two-pane + upload; new `BuyerStore` + `Checkout`; `SellerDashboard` → table; reuse the rest. `lib/api.js`: `grade(id, forceCached, currentImages)`, `cart`, `addToCart`, `notifications`, `checkout`; keep the `*Safe` cold-start wrappers.
+
+**Verify (done when):** homepage (3 options) → all three sections reachable, no dead ends, on the live Vercel URL against the deployed backend; returns desk: **upload current photos → live grade of the UPLOADED photos** (network tab shows `current_images` in the `/grade` body) → route → health card → radar ping, AND no-upload seeded grade still works, **spine (SL-001) regression-clean**; buyer: Shop→PDP size proof→add to cart→cart line→UPI checkout→success, Orders resell→radar/liquidity→ping, Notifications nudge→resell; seller table→tap SKU→diagnose; every new number traces to an endpoint (curl each first); build clean, zero new deps; walked via chrome-devtools on localhost AND the live Vercel URL; new endpoints + `/grade` field documented in api-spec.md + architecture.md.
+
+**SEQUENCING:** Build MT9 the **next session** (it's the de-phone reshell — do it before MT8 so the cascade strip is built into the web RouteScreen, not the phone frame). Then MT8 (cascade), then MT5 (bulletproof, now incl. MT9's upload + storefront loading/error states + checkout), then MT6 (submit).
+
 ---
 **Reserve the final 6–8 hours exclusively for MT6.** | Done log: see docs/STATE.md

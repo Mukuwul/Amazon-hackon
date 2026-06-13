@@ -1,0 +1,15 @@
+{
+  "comment": "Buyer storefront seed (MT9). Per-persona starting cart + notifications. Backs GET/POST /cart/{persona}, GET /notifications/{persona}, POST /checkout/{persona}. Cart lines carry the fit-proof recommended size (shoe UK 9, kurta L). The hero notification points at the idle monitor (SL-002 / B0MONITOR1) so a tap flows into the radar→liquidity resell. upi_vpa is a demo VPA — checkout is an API-returned confirmation, no real payment.",
+  "rahul": {
+    "upi_vpa": "rahul@okhdfc",
+    "cart": [
+      {"asin": "B0SHOE500", "item_id": "SL-001", "title": "Aurelle Women's Running Shoes", "category": "footwear", "size": "UK 9", "qty": 1, "price": 500, "thumb": "/items/SL-001/current_1.jpg"},
+      {"asin": "B0KURTA01", "item_id": "SL-003", "title": "Vastram Men's Cotton Kurta (Navy Blue)", "category": "apparel", "size": "L", "qty": 1, "price": 899, "thumb": "/items/SL-003/current_1.jpg"}
+    ],
+    "notifications": [
+      {"id": "n-resell", "kind": "resell", "hero": true, "asin": "B0MONITOR1", "item_id": "SL-002", "title": "Your NestCam Baby Monitor", "body": "3 buyers are searching “baby monitor” within 4 km. Idle 19 months in your home — resell it on Second Life?", "cta": "Resell now", "ts": "just now"},
+      {"id": "n-price", "kind": "price_drop", "hero": false, "asin": "B0HDPHN880", "item_id": "SL-006", "title": "SonicWave ANC Headphones", "body": "Price dropped to ₹4,499 on an item in your wishlist.", "cta": "View deal", "ts": "2h ago"},
+      {"id": "n-delivery", "kind": "delivery", "hero": false, "asin": "B0BCKPCK19", "item_id": "SL-008", "title": "TrailMate 28L Backpack", "body": "Delivered to your doorstep. Rate your purchase?", "cta": "Rate it", "ts": "yesterday"}
+    ]
+  }
+}

@@ -7,7 +7,7 @@ import { inr } from "../lib/format";
 // Buyer PDP — the PREVENT moment. Before a fit-risky buy, show how past buyers of
 // this size actually fit it (GET /size-advice → fit) and the Second Life resale
 // value so the buyer knows it holds worth. Every figure is a field of the response.
-export default function Pdp({ advice, onBack, onBuy }) {
+export default function Pdp({ advice, onBack, onBuy, busy }) {
   const fit = advice.fit;
   const resale = advice.resale_hint;
   const [size, setSize] = useState(fit?.recommended_size || null);
@@ -95,7 +95,7 @@ export default function Pdp({ advice, onBack, onBuy }) {
         </div>
       )}
 
-      <FooterAction variant="primary" onClick={() => onBuy(size)}>
+      <FooterAction variant="primary" onClick={() => onBuy(size)} loading={busy}>
         {size ? `Add to cart · ${size}` : "Add to cart"}
       </FooterAction>
     </div>

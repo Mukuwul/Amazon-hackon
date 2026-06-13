@@ -1,35 +1,46 @@
-import TopBar from "../components/TopBar";
-import { SLBadge } from "../components/ui";
 import { inr } from "../lib/format";
 
-// Persona launcher — the whole lifecycle a product can hit, on one console.
-// Prevent (buyer + seller) → Recover (the live spine) → Recirculate (resell).
-// Ops is the existing returns inbox, untouched.
+// Web landing (MT9, de-phoned). The persona launcher for the whole lifecycle a
+// product can hit: Prevent (buyer + seller) → Recover (the live spine) → Recirculate
+// (resell). Ops is the existing returns console, untouched. Same three options as the
+// phone home, re-laid as a responsive web grid.
 export default function Home({ metrics, onOps, onBuyer, onSeller }) {
   return (
-    <div className="screen-scroll bg-sl-paper">
-      <TopBar title="Second Life" subtitle="Every product, its next best owner" right={<SLBadge />} />
-
-      <div className="px-4 pt-4">
-        <div className="relative overflow-hidden rounded-2xl bg-az-slate text-white p-4 shadow-card anim-fade-up">
-          <div className="absolute -right-6 -top-8 w-28 h-28 rounded-full bg-sl-green/25 blur-2xl" />
-          <p className="text-white/55 text-[11px] font-600 uppercase tracking-wider">One product · three chances</p>
-          <p className="mt-1.5 font-display font-800 text-[19px] leading-snug">
-            <span className="text-sl-green-soft">Prevent</span> · <span className="text-az-orange">Recover</span> ·{" "}
+    <div className="screen-page anim-fade-up">
+      {/* hero / identity band */}
+      <section className="relative overflow-hidden rounded-3xl bg-az-slate text-white px-6 sm:px-10 py-8 sm:py-11 shadow-card">
+        <div className="absolute -right-10 -top-16 w-64 h-64 rounded-full bg-sl-green/20 blur-3xl" />
+        <div className="absolute right-24 top-10 w-40 h-40 rounded-full bg-az-orange/10 blur-3xl" />
+        <div className="relative max-w-2xl">
+          <p className="text-white/55 text-[12px] font-700 uppercase tracking-[0.18em]">
+            Amazon Second Life · one product, three chances
+          </p>
+          <h2 className="mt-3 font-display font-800 text-[30px] sm:text-[40px] leading-[1.05] tracking-tight">
+            <span className="text-sl-green-soft">Prevent</span> ·{" "}
+            <span className="text-az-orange">Recover</span> ·{" "}
             <span className="text-sl-green-soft">Recirculate</span>
+          </h2>
+          <p className="mt-4 text-white/65 text-[14.5px] sm:text-[15.5px] leading-relaxed">
+            An intelligent layer inside Amazon. Stop the return before it happens, recover full
+            value when it does, and reactivate what already sits idle in homes — every item routed
+            to its next best owner.
           </p>
-          <p className="mt-1.5 text-white/60 text-[12.5px] leading-relaxed">
-            Stop the return before it happens, recover full value when it does, and reactivate what
-            already sits idle in homes.
-          </p>
+          {metrics && (
+            <div className="mt-5 inline-flex flex-wrap items-center gap-x-6 gap-y-1 rounded-xl bg-white/8 ring-1 ring-white/10 px-4 py-2.5">
+              <Stat value={inr(metrics.rupees_recovered)} label="recovered" />
+              <Stat value={`${metrics.warehouse_bypass_pct}%`} label="skip the warehouse" />
+              <span className="flex items-center gap-1.5 text-white/45 text-[11px]">
+                <span className="inline-block w-1.5 h-1.5 rounded-full bg-sl-green-soft animate-pulse" />
+                live · deployed grading engine
+              </span>
+            </div>
+          )}
         </div>
-      </div>
+      </section>
 
-      <p className="px-5 pt-5 pb-2 text-[11px] font-700 uppercase tracking-wider text-sl-muted">
-        Choose a view
-      </p>
+      <p className="mt-8 mb-3 text-[12px] font-700 uppercase tracking-wider text-sl-muted">Choose a view</p>
 
-      <div className="px-4 space-y-2.5 pb-8">
+      <div className="grid gap-4 sm:grid-cols-3">
         <PersonaCard
           onClick={onOps}
           accent="green"
@@ -39,6 +50,7 @@ export default function Home({ metrics, onOps, onBuyer, onSeller }) {
           who="Ops"
           sub="Grade returns & idle items, route each to its highest-value second life."
           stat={metrics ? `${inr(metrics.rupees_recovered)} recovered · ${metrics.warehouse_bypass_pct}% skip the warehouse` : "The live grading spine"}
+          cta="Open the grading desk"
           icon={<BoxIcon />}
         />
         <PersonaCard
@@ -49,6 +61,7 @@ export default function Home({ metrics, onOps, onBuyer, onSeller }) {
           who="Buyer"
           sub="Shop with real fit proof, then resell what you already own in one tap."
           stat="Fewer fit returns · the idle monitor finds a buyer"
+          cta="Open the storefront"
           icon={<CartIcon />}
         />
         <PersonaCard
@@ -59,10 +72,20 @@ export default function Home({ metrics, onOps, onBuyer, onSeller }) {
           who="Seller"
           sub="See which listings drive returns — and the AI fix that stops them."
           stat="Worst-first return-rate dashboard"
+          cta="Open the dashboard"
           icon={<StoreIcon />}
         />
       </div>
     </div>
+  );
+}
+
+function Stat({ value, label }) {
+  return (
+    <span className="flex items-baseline gap-1.5">
+      <span className="font-display font-800 text-[18px] tnum text-white leading-none">{value}</span>
+      <span className="text-white/55 text-[11.5px]">{label}</span>
+    </span>
   );
 }
 
@@ -72,35 +95,30 @@ const ACCENT = {
   violet: { ring: "ring-sl-line hover:ring-violet-300", chip: "bg-violet-50 text-violet-700", icon: "bg-violet-100 text-violet-700" },
 };
 
-function PersonaCard({ onClick, accent, primary, phase, title, who, sub, stat, icon }) {
+function PersonaCard({ onClick, accent, primary, phase, title, who, sub, stat, cta, icon }) {
   const a = ACCENT[accent];
   return (
     <button
       onClick={onClick}
-      className={`group w-full text-left rounded-2xl bg-white ring-1 ${a.ring} shadow-card p-3.5 flex gap-3 transition hover:shadow-pop active:scale-[0.99] anim-fade-up`}
+      className={`group h-full text-left rounded-2xl bg-white ring-1 ${a.ring} shadow-card p-5 flex flex-col transition hover:shadow-pop hover:-translate-y-0.5 active:translate-y-0`}
     >
-      <div className={`w-11 h-11 rounded-xl grid place-items-center shrink-0 ${a.icon}`}>{icon}</div>
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          <span className={`inline-block rounded-full px-2 py-0.5 text-[9.5px] font-800 tracking-wide ${a.chip}`}>{phase}</span>
-          {primary && <span className="text-[9.5px] font-800 text-az-orange-deep tracking-wide">START HERE</span>}
-        </div>
-        <h3 className="mt-1 font-700 text-[15px] leading-tight text-sl-ink">
-          {title} <span className="text-sl-muted font-500 text-[12px]">· {who}</span>
-        </h3>
-        <p className="text-[11.5px] text-sl-muted mt-0.5 leading-snug">{sub}</p>
-        <p className="mt-1.5 text-[11px] font-600 text-sl-green-deep leading-snug">{stat}</p>
+      <div className="flex items-center justify-between">
+        <div className={`w-12 h-12 rounded-xl grid place-items-center ${a.icon}`}>{icon}</div>
+        {primary && <span className="text-[10px] font-800 text-az-orange-deep tracking-wide">START HERE</span>}
       </div>
-      <Chevron />
+      <span className={`mt-4 inline-block self-start rounded-full px-2.5 py-0.5 text-[10px] font-800 tracking-wide ${a.chip}`}>{phase}</span>
+      <h3 className="mt-2 font-700 text-[18px] leading-tight text-sl-ink">
+        {title} <span className="text-sl-muted font-500 text-[13px]">· {who}</span>
+      </h3>
+      <p className="text-[13px] text-sl-muted mt-1.5 leading-snug">{sub}</p>
+      <p className="mt-3 text-[12px] font-600 text-sl-green-deep leading-snug">{stat}</p>
+      <span className="mt-4 pt-3 border-t border-sl-line flex items-center gap-1.5 text-[13px] font-700 text-sl-ink group-hover:text-sl-green-deep transition">
+        {cta}
+        <svg viewBox="0 0 24 24" className="w-4 h-4 group-hover:translate-x-0.5 transition" fill="none">
+          <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </span>
     </button>
-  );
-}
-
-function Chevron() {
-  return (
-    <svg viewBox="0 0 24 24" className="w-5 h-5 text-sl-muted self-center shrink-0 group-hover:translate-x-0.5 transition" fill="none">
-      <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
   );
 }
 

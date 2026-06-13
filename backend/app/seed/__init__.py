@@ -24,6 +24,9 @@ with open(SEED_DIR / "size_signals.json", encoding="utf-8") as f:
 with open(SEED_DIR / "seller_catalog.json", encoding="utf-8") as f:
     SELLER_CATALOG = json.load(f)
 
+with open(SEED_DIR / "buyer.json", encoding="utf-8") as f:
+    BUYER = json.load(f)
+
 
 def get_item(item_id: str) -> dict | None:
     return ITEMS.get(item_id)
@@ -96,3 +99,8 @@ def seller_catalog() -> dict:
 def order_history(persona: str) -> list[dict] | None:
     """A persona's seeded order history, e.g. orders.json -> rahul_order_history."""
     return ORDERS.get(f"{persona.lower()}_order_history")
+
+
+def buyer_data(persona: str) -> dict | None:
+    """A persona's seeded storefront block (cart + notifications + upi_vpa)."""
+    return BUYER.get(persona.lower())

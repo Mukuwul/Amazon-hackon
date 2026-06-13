@@ -27,8 +27,17 @@ export const api = {
   health: () => req("/health"),
   items: () => req("/items"),
   item: (id) => req(`/items/${id}`),
-  grade: (id, forceCached) =>
-    req("/grade", { method: "POST", body: { item_id: id, force_cached: !!forceCached } }),
+  // currentImages: optional base64 photos (no data: prefix) — grades the UPLOADED
+  // current photos against the seeded day-0 baseline. Omit → seeded current photos.
+  grade: (id, forceCached, currentImages) =>
+    req("/grade", {
+      method: "POST",
+      body: {
+        item_id: id,
+        force_cached: !!forceCached,
+        ...(currentImages && currentImages.length ? { current_images: currentImages } : {}),
+      },
+    }),
   route: (id) => req("/route", { method: "POST", body: { item_id: id } }),
   healthCard: (id) => req(`/health-card/${id}`),
   sealCheck: (id) => req("/seal-check", { method: "POST", body: { item_id: id } }),
@@ -40,6 +49,13 @@ export const api = {
   sizeAdvice: (asin) => req(`/size-advice/${asin}`),
   sellerReturns: () => req("/seller/returns"),
   orders: (persona) => req(`/orders/${persona}`),
+  // MT9 — buyer storefront. Cart is a per-instance overlay; the rest are seed reads.
+  cart: (persona) => req(`/cart/${persona}`),
+  addToCart: (persona, asin, size, qty = 1) =>
+    req(`/cart/${persona}`, { method: "POST", body: { asin, size: size || null, qty } }),
+  notifications: (persona) => req(`/notifications/${persona}`),
+  checkout: (persona, confirm = false) =>
+    req(`/checkout/${persona}`, { method: "POST", body: { confirm } }),
 };
 
 // The in-memory passport is per-Lambda-instance: a cold start between calls

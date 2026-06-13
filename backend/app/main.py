@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 from mangum import Mangum
 from .llm import ask_llm
 from . import grading, passport, seed, vrs, healthcard, radar, inspection, pricing, metrics
-from . import size, seller, orders as orders_mod
+from . import size, seller, orders as orders_mod, buyer
 
 app = FastAPI(title="Amazon Second Life API")
 
@@ -54,6 +54,10 @@ def chat(body: ChatIn):
 class GradeIn(BaseModel):
     item_id: str = Field(..., min_length=1, max_length=20)
     force_cached: bool = False
+    # Optional uploaded current photos (base64). The agent captures the unit's
+    # current state at handoff; we grade THESE against the seeded day-0 baseline.
+    # Capped at 3 here (count); per-image byte size is enforced in grading.py.
+    current_images: list[str] | None = Field(default=None, max_length=3)
 
 
 @app.get("/items")
@@ -72,9 +76,17 @@ def item_detail(item_id: str):
 @app.post("/grade")
 def grade(body: GradeIn):
     try:
-        return grading.grade_item(body.item_id, force_cached=body.force_cached)
+        return grading.grade_item(
+            body.item_id,
+            force_cached=body.force_cached,
+            current_images=body.current_images,
+        )
     except KeyError:
         raise HTTPException(status_code=404, detail="item not found")
+    except grading.ImageTooLarge:
+        raise HTTPException(status_code=422, detail="uploaded image too large")
+    except ValueError:
+        raise HTTPException(status_code=422, detail="invalid uploaded image")
     except grading.CacheMiss:
         raise HTTPException(status_code=502, detail="ai_unavailable")
 
@@ -189,6 +201,51 @@ def orders(persona: str):
     if result is None:
         raise HTTPException(status_code=404, detail="no order history for this persona")
     return {"persona": persona, "orders": result}
+
+
+# --- MT9: buyer storefront (cart · notifications · UPI checkout) ---
+
+
+class CartLineIn(BaseModel):
+    asin: str = Field(..., min_length=1, max_length=20)
+    size: str | None = Field(default=None, max_length=20)
+    qty: int = Field(default=1, ge=1, le=10)
+
+
+class CheckoutIn(BaseModel):
+    confirm: bool = False
+
+
+@app.get("/cart/{persona}")
+def get_cart(persona: str):
+    result = buyer.get_cart(persona)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no cart for this persona")
+    return result
+
+
+@app.post("/cart/{persona}")
+def add_to_cart(persona: str, body: CartLineIn):
+    result = buyer.add_to_cart(persona, body.asin, size=body.size, qty=body.qty)
+    if result is None:
+        raise HTTPException(status_code=404, detail="asin not in catalog")
+    return result
+
+
+@app.get("/notifications/{persona}")
+def get_notifications(persona: str):
+    result = buyer.get_notifications(persona)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no notifications for this persona")
+    return result
+
+
+@app.post("/checkout/{persona}")
+def checkout(persona: str, body: CheckoutIn):
+    result = buyer.checkout(persona, confirm=body.confirm)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no cart for this persona")
+    return result
 
 
 # Lambda entrypoint. Locally you still run: uvicorn app.main:app --reload --port 8080
