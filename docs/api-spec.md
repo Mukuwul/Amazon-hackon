@@ -88,6 +88,37 @@ Liquidity slider data (requires grade).
 Body: `{"asin": "B0KURTA01"}` (seed item with listing-vs-reality mismatch).
 → `200 {"asin", "returns_analyzed": 18, "discrepancies": [{"aspect": "color", "listing_shows": "navy blue", "returns_show": "royal blue"}], "patch": {"field": "title/photos", "current_text": "...", "suggested_text": "..."}, "projected_return_reduction_pct": 40, "source": "live-bedrock"}`
 
+## GET /size-advice/{asin}  *(MT7 — buyer PREVENT)*
+Fit social proof + Second Life resale hint for a catalog ASIN. `fit` is a seeded per-ASIN signal (footwear/apparel only; `null` for unsized items); `resale_hint` is deterministic pricing math over the seeded local buyers (grade-B resale at current local demand). `404 {"detail": "asin not in catalog"}` if the ASIN isn't a seed item.
+→ `200`:
+```json
+{
+  "asin": "B0SHOE500",
+  "title": "Aurelle Women's Running Shoes",
+  "category": "footwear",
+  "mrp": 500,
+  "thumb": "/items/SL-001/current_1.jpg",
+  "fit": {
+    "size_system": "UK", "your_size": "UK 8", "recommended_size": "UK 9",
+    "headline_pct": 68, "direction": "up", "sample_size": 1240,
+    "fit_distribution": [{"bucket": "ran small — sized up", "pct": 68}, {"bucket": "fit true to size", "pct": 25}, {"bucket": "ran large — sized down", "pct": 7}],
+    "advice": "This pair runs small. 68% of UK-8 buyers ordered one size up — we suggest UK 9."
+  },
+  "resale_hint": {"amount": 343, "buyers_nearby": 4, "top_offer": 310}
+}
+```
+Stateless read (no passport prereq). Backed by `seed/size_signals.json` + `size.py`.
+
+## GET /seller/returns  *(MT7 — seller PREVENT)*
+Seller catalog sorted worst-first by return rate. `return_rate_pct` is computed (`returns/units_sold`); `diagnosable` SKUs (kurta, shoe) have a `/diagnose-listing` drill-down whose `returns_analyzed` equals this row's `returns`.
+→ `200 {"seller": {"name": "Vastram Apparel & Goods", "store_id": "A1SELLER42", "quarter": "Q2 FY26"}, "skus": [{"asin": "B0KURTA01", "item_id": "SL-003", "title": "...", "category": "apparel", "thumb": "...", "units_sold": 64, "returns": 18, "top_return_reason": "colour not as shown", "diagnosable": true, "return_rate_pct": 28}, ...], "total_units_sold": 3334, "total_returns": 117}`
+Stateless read. Backed by `seed/seller_catalog.json` + `seller.py`.
+
+## GET /orders/{persona}  *(MT7 — buyer RECIRCULATE entry)*
+A persona's order history with a `resellable` flag (true when the ASIN has dormant units on the radar). The resellable order (monitor) feeds one-tap resell → `/radar` → `/price-curve`. `404` if the persona has no seeded history.
+→ `200 {"persona": "rahul", "orders": [{"order_id": "171-8835520-SL002", "asin": "B0MONITOR1", "title": "NestCam Video Baby Monitor (5\" Display)", "purchase_date": "2024-11-02", "price_paid": 3200, "status": "delivered", "item_id": "SL-002", "resellable": true}, {"...stroller/crib...": "...", "item_id": null, "resellable": false}]}`
+Stateless read. Backed by `seed/orders.json → {persona}_order_history` + `orders.py`.
+
 ## GET /metrics
 Running demo counters (from passport events this session + seeded baseline).
 → `200 {"items_processed": 8, "rupees_recovered": 4830, "rupees_vs_writeoff_baseline": 5390, "warehouse_bypass_pct": 62, "co2_saved_kg": 14.2, "landfill_diverted_kg": 6.1, "inspection_hours_saved": 2.7}`

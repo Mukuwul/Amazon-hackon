@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 from mangum import Mangum
 from .llm import ask_llm
 from . import grading, passport, seed, vrs, healthcard, radar, inspection, pricing, metrics
+from . import size, seller, orders as orders_mod
 
 app = FastAPI(title="Amazon Second Life API")
 
@@ -161,6 +162,33 @@ def diagnose_listing(body: DiagnoseIn):
 @app.get("/metrics")
 def get_metrics():
     return metrics.metrics()
+
+
+# --- MT7: two-sided console (Prevent + Recirculate) ---
+
+
+@app.get("/size-advice/{asin}")
+def size_advice(asin: str):
+    """Buyer PDP: fit social proof (sized items) + Second Life resale hint."""
+    result = size.size_advice(asin)
+    if result is None:
+        raise HTTPException(status_code=404, detail="asin not in catalog")
+    return result
+
+
+@app.get("/seller/returns")
+def seller_returns():
+    """Seller dashboard: catalog sorted worst-first by return rate."""
+    return seller.seller_returns()
+
+
+@app.get("/orders/{persona}")
+def orders(persona: str):
+    """Buyer order history with a resellable flag per order."""
+    result = orders_mod.order_history(persona)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no order history for this persona")
+    return {"persona": persona, "orders": result}
 
 
 # Lambda entrypoint. Locally you still run: uvicorn app.main:app --reload --port 8080

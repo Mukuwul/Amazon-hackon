@@ -14,16 +14,30 @@ import LiquidityScreen from "./screens/LiquidityScreen";
 import SealLane from "./screens/SealLane";
 import DiagnoseScreen from "./screens/DiagnoseScreen";
 import MetricsScreen from "./screens/MetricsScreen";
+import Home from "./screens/Home";
+import BuyerHome from "./screens/BuyerHome";
+import Pdp from "./screens/Pdp";
+import SellerDashboard from "./screens/SellerDashboard";
 
 // Each inbox item drives a dedicated flow. SL-001 is the ⭐ spine; the rest are
 // the MT4 supporting beats. Anything not mapped here stays QUEUED in the inbox.
 const LANE = { "SL-002": "radar", "SL-003": "diagnose", "SL-004": "rto" };
 
 export default function App() {
-  const [screen, setScreen] = useState("inbox");
+  const [screen, setScreen] = useState("home");
   const [items, setItems] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [itemsLoading, setItemsLoading] = useState(true);
+
+  // MT7 — which persona view the current sub-flow belongs to, so shared screens
+  // (radar, diagnose) return to the right home.
+  const [origin, setOrigin] = useState("ops");
+  const [buyerOrders, setBuyerOrders] = useState(null);
+  const [ordersLoading, setOrdersLoading] = useState(false);
+  const [sellerData, setSellerData] = useState(null);
+  const [sellerLoading, setSellerLoading] = useState(false);
+  const [busyAsin, setBusyAsin] = useState(null);
+  const [advice, setAdvice] = useState(null); // size-advice payload for the PDP
 
   const [item, setItem] = useState(null);
   const [lane, setLane] = useState("spine");
@@ -92,6 +106,7 @@ export default function App() {
   async function openItem(row) {
     setErr(null);
     resetItemState();
+    setOrigin("ops");
     const thisLane = LANE[row.item_id] || "spine";
     setLane(thisLane);
     setBusy(true);
@@ -227,9 +242,134 @@ export default function App() {
     setScreen("inbox");
   }
 
+  // --- MT7: persona console ---
+  function originHome() {
+    return origin === "buyer" ? "buyer" : origin === "seller" ? "seller" : "inbox";
+  }
+  function backToOrigin() {
+    setToast(null);
+    setErr(null);
+    setScreen(originHome());
+  }
+  function goHome() {
+    setToast(null);
+    setErr(null);
+    setScreen("home");
+  }
+
+  function openOps() {
+    setErr(null);
+    setScreen("inbox");
+  }
+
+  function openBuyer() {
+    setErr(null);
+    setOrigin("buyer");
+    setScreen("buyer");
+    if (!buyerOrders) {
+      setOrdersLoading(true);
+      api
+        .orders("rahul")
+        .then((d) => setBuyerOrders(d.orders))
+        .catch(() => setBuyerOrders([]))
+        .finally(() => setOrdersLoading(false));
+    }
+  }
+
+  function openSeller() {
+    setErr(null);
+    setOrigin("seller");
+    setScreen("seller");
+    if (!sellerData) {
+      setSellerLoading(true);
+      api
+        .sellerReturns()
+        .then(setSellerData)
+        .catch((e) => setErr({ message: `Couldn't load the dashboard (${e.message}).`, retry: openSeller }))
+        .finally(() => setSellerLoading(false));
+    }
+  }
+
+  // buyer: shop → PDP (size proof, PREVENT)
+  async function openPdp(gridItem) {
+    setErr(null);
+    setBusy(true);
+    try {
+      const a = await api.sizeAdvice(gridItem.asin);
+      setAdvice(a);
+      setScreen("pdp");
+    } catch (e) {
+      setErr({ message: `Couldn't open this product (${e.detail || e.message}).`, retry: () => openPdp(gridItem) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function buyPdp(size) {
+    setToast({
+      title: "Added to cart",
+      message: size
+        ? `${advice.title} · size ${size} — the size most buyers kept.`
+        : `${advice.title} added to your cart.`,
+    });
+  }
+
+  // buyer: order history → one-tap resell (RECIRCULATE) → reuses the radar lane
+  async function resellOrder(order) {
+    if (!order.resellable || !order.item_id) return;
+    setErr(null);
+    resetItemState();
+    setOrigin("buyer");
+    setLane("radar");
+    setBusy(true);
+    try {
+      const detail = await api.item(order.item_id).catch(() => null);
+      const it = detail
+        ? { ...detail.item, passport: detail.passport }
+        : { item_id: order.item_id, asin: order.asin, title: order.title };
+      setItem(it);
+      const r = await api.radar(order.asin);
+      setRadarData(r);
+      setScreen("radar");
+    } catch (e) {
+      setErr({ message: `Couldn't open resale (${e.detail || e.message}).`, retry: () => resellOrder(order) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function returnOrder(order) {
+    setToast({
+      title: "Return started",
+      message: `${order.title} → heading to the Returns desk for grading.`,
+    });
+  }
+
+  // seller: tap a high-return SKU → diagnose drill-down (PREVENT) → reuses DiagnoseScreen
+  async function openSellerDiagnose(sku) {
+    setErr(null);
+    setOrigin("seller");
+    setBusyAsin(sku.asin);
+    setBusy(true);
+    try {
+      setItem({ item_id: sku.item_id, asin: sku.asin, title: sku.title, category: sku.category, thumb: sku.thumb });
+      const d = await api.diagnose(sku.asin);
+      setDiagnose(d);
+      setScreen("diagnose");
+    } catch (e) {
+      setErr({ message: `Couldn't load the fix (${e.detail || e.message}).`, retry: () => openSellerDiagnose(sku) });
+    } finally {
+      setBusy(false);
+      setBusyAsin(null);
+    }
+  }
+
   return (
     <PhoneFrame>
       <div key={screen} className="h-full anim-fade-in">
+        {screen === "home" && (
+          <Home metrics={metrics} onOps={openOps} onBuyer={openBuyer} onSeller={openSeller} />
+        )}
         {screen === "inbox" && (
           <Inbox
             items={items}
@@ -239,6 +379,32 @@ export default function App() {
             onForceCached={setForceCached}
             onOpen={openItem}
             onShowMetrics={() => setScreen("metrics")}
+            onBack={goHome}
+          />
+        )}
+        {screen === "buyer" && (
+          <BuyerHome
+            items={items}
+            orders={buyerOrders}
+            ordersLoading={ordersLoading}
+            busy={busy}
+            onOpenPdp={openPdp}
+            onResell={resellOrder}
+            onReturn={returnOrder}
+            onBack={goHome}
+          />
+        )}
+        {screen === "pdp" && advice && (
+          <Pdp advice={advice} onBuy={buyPdp} onBack={() => setScreen("buyer")} />
+        )}
+        {screen === "seller" && (
+          <SellerDashboard
+            data={sellerData}
+            loading={sellerLoading}
+            busy={busy}
+            busyAsin={busyAsin}
+            onDiagnose={openSellerDiagnose}
+            onBack={goHome}
           />
         )}
         {screen === "intro" && item && (
@@ -268,7 +434,7 @@ export default function App() {
           />
         )}
         {screen === "radar" && radarData && item && (
-          <RadarScreen item={item} radar={radarData} valuing={busy} onSell={openLiquidity} onBack={goInbox} />
+          <RadarScreen item={item} radar={radarData} valuing={busy} onSell={openLiquidity} onBack={backToOrigin} />
         )}
         {screen === "liquidity" && curve && item && (
           <LiquidityScreen item={item} curve={curve} listing={false} onList={listIdle} onBack={() => setScreen("radar")} />
@@ -277,7 +443,7 @@ export default function App() {
           <SealLane item={item} seal={seal} routing={busy} onRoute={runRtoRoute} onBack={goInbox} />
         )}
         {screen === "diagnose" && diagnose && item && (
-          <DiagnoseScreen item={item} diagnose={diagnose} onBack={goInbox} />
+          <DiagnoseScreen item={item} diagnose={diagnose} onBack={backToOrigin} />
         )}
         {screen === "metrics" && (
           <MetricsScreen metrics={metrics} onBack={goInbox} onDone={goInbox} />

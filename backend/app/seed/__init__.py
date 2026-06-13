@@ -18,6 +18,12 @@ with open(SEED_DIR / "orders.json", encoding="utf-8") as f:
 with open(SEED_DIR / "neighbors.json", encoding="utf-8") as f:
     NEIGHBORS = json.load(f)
 
+with open(SEED_DIR / "size_signals.json", encoding="utf-8") as f:
+    SIZE_SIGNALS = json.load(f)
+
+with open(SEED_DIR / "seller_catalog.json", encoding="utf-8") as f:
+    SELLER_CATALOG = json.load(f)
+
 
 def get_item(item_id: str) -> dict | None:
     return ITEMS.get(item_id)
@@ -75,3 +81,18 @@ def dormant_units(asin: str) -> list[dict]:
     """Dormant units of an ASIN sitting in homes near the demand point, nearest first."""
     out = [u for u in ORDERS["dormant_units"] if u["asin"] == asin]
     return sorted(out, key=lambda u: u["distance_km"])
+
+
+def size_signal(asin: str) -> dict | None:
+    """Per-ASIN fit social proof (footwear/apparel only), or None."""
+    sig = SIZE_SIGNALS.get(asin)
+    return sig if isinstance(sig, dict) else None
+
+
+def seller_catalog() -> dict:
+    return SELLER_CATALOG
+
+
+def order_history(persona: str) -> list[dict] | None:
+    """A persona's seeded order history, e.g. orders.json -> rahul_order_history."""
+    return ORDERS.get(f"{persona.lower()}_order_history")

@@ -1,0 +1,14 @@
+{
+  "returns_analyzed": 24,
+  "discrepancies": [
+    {"aspect": "fit", "listing_shows": "true to size", "returns_show": "runs half a size small"},
+    {"aspect": "size chart", "listing_shows": "no width guidance", "returns_show": "narrow forefoot"}
+  ],
+  "patch": {
+    "field": "title + size chart",
+    "current_text": "Aurelle Women's Running Shoes — True to Size",
+    "suggested_text": "Aurelle Women's Running Shoes — Runs Small, Order One Size Up (Narrow Fit)"
+  },
+  "projected_return_reduction_pct": 35,
+  "model": "us.amazon.nova-2-lite-v1:0"
+}

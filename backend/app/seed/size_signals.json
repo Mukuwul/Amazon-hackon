@@ -1,0 +1,31 @@
+{
+  "comment": "Per-ASIN fit social proof for the buyer PDP (PREVENT). Backs GET /size-advice/{asin} (MT7). fit_distribution pcts sum to 100; headline_pct == the dominant 'sized up/down' bucket. Only sized items (footwear/apparel) carry a signal; the resale_hint is computed live in size.py from pricing + seeded buyers, so it isn't baked here.",
+  "B0SHOE500": {
+    "size_system": "UK",
+    "your_size": "UK 8",
+    "recommended_size": "UK 9",
+    "headline_pct": 68,
+    "direction": "up",
+    "sample_size": 1240,
+    "fit_distribution": [
+      {"bucket": "ran small — sized up", "pct": 68},
+      {"bucket": "fit true to size", "pct": 25},
+      {"bucket": "ran large — sized down", "pct": 7}
+    ],
+    "advice": "This pair runs small. 68% of UK-8 buyers ordered one size up — we suggest UK 9."
+  },
+  "B0KURTA01": {
+    "size_system": "Apparel",
+    "your_size": "M",
+    "recommended_size": "L",
+    "headline_pct": 54,
+    "direction": "up",
+    "sample_size": 640,
+    "fit_distribution": [
+      {"bucket": "slim cut — sized up", "pct": 54},
+      {"bucket": "fit true to size", "pct": 39},
+      {"bucket": "ran loose — sized down", "pct": 7}
+    ],
+    "advice": "This kurta has a slim cut. 54% of M buyers sized up to L for an easier fit."
+  }
+}

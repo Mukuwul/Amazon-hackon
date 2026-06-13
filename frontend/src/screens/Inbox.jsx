@@ -36,7 +36,7 @@ function StageToggle({ value, onChange }) {
   );
 }
 
-export default function Inbox({ items, metrics, loading, forceCached, onForceCached, onOpen, onShowMetrics }) {
+export default function Inbox({ items, metrics, loading, forceCached, onForceCached, onOpen, onShowMetrics, onBack }) {
   const hero = items.find((i) => i.item_id === "SL-001");
   const lanes = ["SL-002", "SL-003", "SL-004"].map((id) => items.find((i) => i.item_id === id)).filter(Boolean);
   const queued = items.filter((i) => i.item_id !== "SL-001" && !LANE[i.item_id]);
@@ -46,6 +46,7 @@ export default function Inbox({ items, metrics, loading, forceCached, onForceCac
       <TopBar
         title="Second Life"
         subtitle="Returns & idle items"
+        onBack={onBack}
         right={<StageToggle value={forceCached} onChange={onForceCached} />}
       />
 

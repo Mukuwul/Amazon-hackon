@@ -90,7 +90,7 @@ Each path returns its full cost breakdown — the frontend renders the math, not
 
 ## 5. Demo-safety: seed data + fallback (nothing on stage can fail)
 
-- **Seed store (repo-baked, in `backend/app/seed/`):** `items.json` (8 curated items: metadata, MRP, age, category), `orders.json` (Rahul's order history + 12 dormant units of the monitor ASIN within 5 km), `neighbors.json` (~30 synthetic local buyers with wishlists/notify-me), `images/` (catalog + day-0 + current photos per item, also copied to `frontend/public/items/`).
+- **Seed store (repo-baked, in `backend/app/seed/`):** `items.json` (8 curated items: metadata, MRP, age, category), `orders.json` (Rahul's order history + 12 dormant units of the monitor ASIN within 5 km), `neighbors.json` (~30 synthetic local buyers with wishlists/notify-me), `size_signals.json` (MT7 — per-ASIN fit social proof for footwear/apparel), `seller_catalog.json` (MT7 — per-SKU sell-through + return counts), `images/` (catalog + day-0 + current photos per item, also copied to `frontend/public/items/`).
 - **Cache layer:** for every seed item, the real Bedrock grading/seal/diagnostics responses are captured once during build and committed as `cached/{item_id}.{call}.json`. At request time: try Bedrock (15s read timeout) → on failure try Gemini → on failure return the cached response with `"source": "cached"`. The UI renders identically; a failed live call on stage is invisible.
 - **Live-call policy for the video/stage:** 2–3 hero items run live; the rest serve cached. Never demo an un-tested item (no live judge-item scans).
 - **DynamoDB optional:** passport events write to DynamoDB only if `DYNAMODB_TABLE_NAME` is set (see docs/db-setup.md); otherwise an in-memory store seeded from JSON. Cold-start state loss is irrelevant for a demo run.
@@ -119,3 +119,13 @@ Each path returns its full cost breakdown — the frontend renders the math, not
 ## 7. Production architecture (the scaling story for judges)
 
 App/PDP → API Gateway → Lambda → **Step Functions** pipeline (grade → route → list) triggered by **S3** photo upload via EventBridge → **DynamoDB** passport event log (item_id PK, event timestamp SK; GSI on ASIN+geohash for radar queries) → SQS human-review queue for sub-threshold confidence → buyer-confirmation events feed back as labeled training data. Serverless horizontal scale: 100× volume with zero re-architecture; geo-agnostic (explicitly not local-only). Resale is **inventory-of-one**: discovery is matching/feeds/alerts over the demand graph, not search — which is why radar + pings, not a storefront.
+
+## 8. Two-sided console — Prevent → Recover → Recirculate (MT7)
+
+The demo widens from recovery-only to the full lifecycle a product can hit, via a persona switch on the phone frame (Buyer · Seller · Ops). **Recover** is the existing ⭐ spine, untouched. MT7 adds two new phases, both **mock the data, not the architecture** — every figure traces to a real endpoint backed by a seed JSON + a thin route, never hardcoded JSX.
+
+- **Prevent (buyer)** — `GET /size-advice/{asin}` (`size.py` + `size_signals.json`): fit social proof on the PDP ("68% of UK-8 buyers sized up") so fewer fit-driven returns ever happen. The resale hint in the same payload is deterministic `pricing.resale_value`, not seeded.
+- **Prevent (seller)** — `GET /seller/returns` (`seller.py` + `seller_catalog.json`): a worst-first return-rate dashboard. Tapping a high-return SKU **reuses `/diagnose-listing`** (no new LLM call) for the AI fix + projected drop; the cached shoe diagnosis (`SL-001.diagnose.json`) was added so both hero SKUs drill down.
+- **Recirculate (buyer)** — `GET /orders/{persona}` (`orders.py`, reads `orders.json`): order history with a `resellable` flag. One-tap resell on the idle monitor flows into the **existing** `/radar` → `/price-curve` lane — the Rahul beat, now with a real origin (his own purchase) instead of starting in the Ops inbox.
+
+All three are stateless reads (no passport prereq, no `*Safe` wrapper). Frontend reuses the MT3 design system + the MT4 `RadarScreen`/`LiquidityScreen`/`DiagnoseScreen` (zero new deps). Backend redeploy required (`deploy.ps1`), unlike the frontend-only MT4.

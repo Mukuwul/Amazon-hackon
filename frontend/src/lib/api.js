@@ -36,6 +36,10 @@ export const api = {
   priceCurve: (id) => req(`/price-curve/${id}`),
   diagnose: (asin) => req("/diagnose-listing", { method: "POST", body: { asin } }),
   metrics: () => req("/metrics"),
+  // MT7 — two-sided console. Stateless reads, no passport prereq → no *Safe wrapper.
+  sizeAdvice: (asin) => req(`/size-advice/${asin}`),
+  sellerReturns: () => req("/seller/returns"),
+  orders: (persona) => req(`/orders/${persona}`),
 };
 
 // The in-memory passport is per-Lambda-instance: a cold start between calls
