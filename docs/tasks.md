@@ -146,5 +146,14 @@ Scope: `[VERIFY-C]` citations resolved in PRD; PRD mapped onto the official subm
 
 **SEQUENCING:** Build MT9 the **next session** (it's the de-phone reshell — do it before MT8 so the cascade strip is built into the web RouteScreen, not the phone frame). Then MT8 (cascade), then MT5 (bulletproof, now incl. MT9's upload + storefront loading/error states + checkout), then MT6 (submit).
 
+## MT10 — Buyer-flow fixes + resell redesign (A backend + B frontend) ✅ DONE (this session)
+**Why this exists:** five buyer/ops/resell defects found while reviewing the demo, fixed before MT5. Spec: docs/superpowers/specs/2026-06-13-mt10-buyer-flow-fixes-resell-redesign-design.md · Plan: docs/superpowers/plans/2026-06-13-mt10-buyer-flow-fixes-resell-redesign.md.
+**Result:** all backend verify checks PASS on the deployed Function URL; frontend builds clean (317 KB, zero new deps) and is pushed to Vercel. Browser walkthrough left to the user (per their instruction).
+- **Fix 1 — Return window:** `orders.py` adds `return_window_open`/`return_by`/`days_left` (10-day window vs demo date 2026-06-13); +2 recent Rahul orders so it's demoable. `BuyerStore` Orders gates the Return button.
+- **Fix 2 — Ops desk de-mix + buyer→ops link:** NEW `returns.py` + `seed/returns_seed.json` + `GET/POST /returns` (per-instance store). `Inbox` redesigned to two sections (Returns to process · COD refused/RTO); idle/diagnose lanes moved out. Buyer Return `POST /returns` → row shows on Ops. Hero SL-001 stays the only live-gradeable row; extras display-only.
+- **Fix 3 — Personalized size:** NEW `seed/purchase_profile.json` + `size_advice(asin, persona)` adds a `personal` block matched by brand/category; `/size-advice/{asin}?persona=`; PDP renders the green "From your purchases" card.
+- **Fix 4 — Resell redesign:** NEW `resell.py` + `/resell/quote` (range→reachable→demand→best_price; `delivery_cut = 25 + 6·km`; net peaks mid-range) + `/resell/listings` + live `/interest`. Flow: Orders→Resell → `ResellConfirm` (bought price/date) → photo upload→AI grade→price → `ResellPrice` (price slider + 3/7/15 km range, net trade-off) → list → `FlashDeals` board (any tab, "I'm interested") → `MyResells` live feed (polls, real cross-tab). Old SL-002 notification radar-resell beat untouched.
+**Verify (done):** every new endpoint curled on the Function URL (`/returns`, `/orders` window fields, `/size-advice?persona`, `/resell/quote|listings|interest`); spine SL-001 grade D regression-clean; build clean; docs (api-spec §, architecture §11) updated; backend redeployed (ECR cred-helper fix — see lessons.md), frontend pushed. ⚠️ Per-instance stores (returns/listings/interests) — fine for demo, note for MT5.
+
 ---
 **Reserve the final 6–8 hours exclusively for MT6.** | Done log: see docs/STATE.md
