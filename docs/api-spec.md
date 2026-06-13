@@ -107,8 +107,9 @@ Liquidity slider data (requires grade).
 Body: `{"asin": "B0KURTA01"}` (seed item with listing-vs-reality mismatch).
 → `200 {"asin", "returns_analyzed": 18, "discrepancies": [{"aspect": "color", "listing_shows": "navy blue", "returns_show": "royal blue"}], "patch": {"field": "title/photos", "current_text": "...", "suggested_text": "..."}, "projected_return_reduction_pct": 40, "source": "live-bedrock"}`
 
-## GET /size-advice/{asin}  *(MT7 — buyer PREVENT)*
+## GET /size-advice/{asin}?persona=  *(MT7 — buyer PREVENT; MT10 adds `persona`)*
 Fit social proof + Second Life resale hint for a catalog ASIN. `fit` is a seeded per-ASIN signal (footwear/apparel only; `null` for unsized items); `resale_hint` is deterministic pricing math over the seeded local buyers (grade-B resale at current local demand). `404 {"detail": "asin not in catalog"}` if the ASIN isn't a seed item.
+**MT10:** the optional `?persona=rahul` query adds a `personal` block tied to that buyer's past purchases (`seed/purchase_profile.json`), matched by the item's **brand** (first word of the title) or **category** — e.g. `{"matched_on": "brand", "past_size": "M", "past_outcome": "fit_true", "recommended_size": "L", "copy": "You bought a Vastram Linen Shirt in M — it fit true to size. This Vastram runs slim, so we suggest you size up to L."}`. No persona, no match, or an unsized item → `"personal": null`.
 → `200`:
 ```json
 {
@@ -133,10 +134,26 @@ Seller catalog sorted worst-first by return rate. `return_rate_pct` is computed 
 → `200 {"seller": {"name": "Vastram Apparel & Goods", "store_id": "A1SELLER42", "quarter": "Q2 FY26"}, "skus": [{"asin": "B0KURTA01", "item_id": "SL-003", "title": "...", "category": "apparel", "thumb": "...", "units_sold": 64, "returns": 18, "top_return_reason": "colour not as shown", "diagnosable": true, "return_rate_pct": 28}, ...], "total_units_sold": 3334, "total_returns": 117}`
 Stateless read. Backed by `seed/seller_catalog.json` + `seller.py`.
 
-## GET /orders/{persona}  *(MT7 — buyer RECIRCULATE entry)*
-A persona's order history with a `resellable` flag (true when the ASIN has dormant units on the radar). The resellable order (monitor) feeds one-tap resell → `/radar` → `/price-curve`. `404` if the persona has no seeded history.
-→ `200 {"persona": "rahul", "orders": [{"order_id": "171-8835520-SL002", "asin": "B0MONITOR1", "title": "NestCam Video Baby Monitor (5\" Display)", "purchase_date": "2024-11-02", "price_paid": 3200, "status": "delivered", "item_id": "SL-002", "resellable": true}, {"...stroller/crib...": "...", "item_id": null, "resellable": false}]}`
+## GET /orders/{persona}  *(MT7 — buyer RECIRCULATE entry; MT10 adds return-window fields)*
+A persona's order history with a `resellable` flag (true when the ASIN has dormant units on the radar) and **MT10 return-window fields** (`return_window_open`, `return_by`, `days_left` — a 10-day window from `purchase_date`, computed against the demo date 2026-06-13). The resellable order (monitor) feeds the new resell flow (`/resell/*`); orders inside the window show an active Return button (→ `POST /returns`). `404` if the persona has no seeded history.
+→ `200 {"persona": "rahul", "orders": [{"order_id": "171-7781002-RH04", "asin": "B0KURTA01", "title": "Vastram Men's Cotton Kurta (Navy Blue)", "purchase_date": "2026-06-09", "price_paid": 899, "status": "delivered", "return_window_open": true, "return_by": "2026-06-19", "days_left": 6, "item_id": "SL-003", "resellable": false}, {"order_id": "171-8835520-SL002", "asin": "B0MONITOR1", "purchase_date": "2024-11-02", "return_window_open": false, "return_by": "2024-11-12", "days_left": 0, "item_id": "SL-002", "resellable": true}]}`
 Stateless read. Backed by `seed/orders.json → {persona}_order_history` + `orders.py`.
+
+## GET /returns · POST /returns  *(MT10 — Ops returns desk)*
+The Ops returns desk = static return-class items (`/items` where `status` is `return_initiated`/`rto_in_transit`) **+** this store. The store holds seeded placeholder extras (`seed/returns_seed.json`) plus any return a buyer initiates from order history. In-memory **per-Lambda-instance** (cart pattern) — a cold start resets to the seed.
+- `GET /returns` → `200 {"returns": [{"return_id": "RTN-B001", "title": "...", "category": "apparel", "thumb": "...", "return_reason": "...", "price_paid": 899, "order_id": "...", "persona": "rahul", "source": "buyer"|"seed", "status": "queued", "created_ts": "..."}, ...]}` (newest first; buyer returns ahead of seeded extras).
+- `POST /returns` body `{"persona": "rahul", "order_id": "...", "asin": "B0KURTA01", "title": "...", "category": "apparel"?, "thumb": "..."?, "return_reason": "..."?, "price_paid": 899?}` → appends a `source:"buyer"` entry (`return_id` `RTN-B00N`) and returns it. The buyer's Return button posts here; the row then shows on the Ops desk.
+
+## POST /resell/quote  *(MT10 — resell economics)*
+Deterministic resale economics for an order item; trades reach for price. Body `{"item_id": "SL-002", "range_km": 7, "grade": "B"?}` (grade defaults to B). `reachable_buyers` = seeded local buyers within `range_km` (`seed.buyers_for_asin`); `best_price` lifts `ai_suggested` by the demand multiplier of those buyers; `delivery_cut = 25 + 6·range_km` (Amazon's cut, grows with reach); `net = best_price − delivery_cut` (peaks mid-range). `points` is a liquidity curve for the price slider. `404` if the item isn't a seed item.
+→ `200 {"item_id": "SL-002", "range_km": 7, "grade": "B", "ai_suggested": 978, "reachable_buyers": 3, "best_price": 1076, "delivery_cut": 67, "net": 1009, "points": [{"price": 1076, "est_days_to_sell": 3, "buyers_at_price": 3}, ...], "recommended": 1550, "range_tiers": [{"range_km": 3, "reachable_buyers": 1, "delivery_cut": 43}, {"range_km": 7, "reachable_buyers": 3, "delivery_cut": 67}, {"range_km": 15, "reachable_buyers": 4, "delivery_cut": 115}]}`
+
+## POST /resell/listings · GET /resell/listings · GET /resell/listings/{id} · POST /resell/listings/{id}/interest  *(MT10 — flash-deals board + live cross-tab interest)*
+In-memory **per-Lambda-instance** marketplace (seeded with 2 starter listings so the board isn't empty). Cross-tab works locally (one uvicorn process) and on a single warm Lambda.
+- `POST /resell/listings` body `{"item_id": "SL-002", "persona": "rahul", "ask_price": 1000, "range_km": 7}` → `200 {"listing_id": "RL-003", "item_id": "...", "asin": "...", "title": "...", "thumb": "...", "ask_price": 1000, "range_km": 7, "delivery_cut": 67, "net": 933, "owner": "rahul", "interests": [], "created_ts": "..."}`.
+- `GET /resell/listings` → `200 {"listings": [ ...newest first... ]}` (the public board).
+- `GET /resell/listings/{id}` → the listing incl. its `interests` (the reseller polls this for the live feed). `404` if unknown.
+- `POST /resell/listings/{id}/interest` body `{"buyer_name": "..."?, "distance_km": 2.4?, "offer": 1000?}` (all optional — auto-filled from a buyer pool, offer defaults to the ask) → the updated listing with the new interest appended (`{"interest_id": "IN-001", "buyer_name": "...", "distance_km": 2.4, "offer": 1000, "ts": "..."}`).
 
 ## GET /cart/{persona}  *(MT9 — buyer storefront)*
 The persona's cart (per-Lambda-instance overlay, seeded from `seed/buyer.json`; a cold start resets to the seed). Total + count are computed server-side. `404` if the persona has no seeded storefront.
