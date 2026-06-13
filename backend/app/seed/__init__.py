@@ -39,6 +39,15 @@ def returns_seed() -> list[dict]:
     return RETURNS_SEED
 
 
+with open(SEED_DIR / "purchase_profile.json", encoding="utf-8") as f:
+    PURCHASE_PROFILE = json.load(f)
+
+
+def purchase_profile(persona: str) -> list[dict]:
+    val = PURCHASE_PROFILE.get(persona.lower(), [])
+    return val if isinstance(val, list) else []
+
+
 def get_item(item_id: str) -> dict | None:
     return ITEMS.get(item_id)
 

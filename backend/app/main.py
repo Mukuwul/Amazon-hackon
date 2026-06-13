@@ -193,9 +193,9 @@ def get_metrics():
 
 
 @app.get("/size-advice/{asin}")
-def size_advice(asin: str):
-    """Buyer PDP: fit social proof (sized items) + Second Life resale hint."""
-    result = size.size_advice(asin)
+def size_advice(asin: str, persona: str | None = None):
+    """Buyer PDP: fit social proof (sized items) + personal history note + resale hint."""
+    result = size.size_advice(asin, persona=persona)
     if result is None:
         raise HTTPException(status_code=404, detail="asin not in catalog")
     return result

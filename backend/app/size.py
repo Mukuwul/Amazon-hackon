@@ -10,8 +10,49 @@ from __future__ import annotations
 
 from . import pricing, seed
 
+_OUTCOME_COPY = {
+    "fit_true": "fit true to size",
+    "ran_small": "ran a bit small",
+    "ran_large": "ran a bit large",
+}
 
-def size_advice(asin: str) -> dict | None:
+
+def _brand(title: str | None) -> str | None:
+    return title.split()[0] if title else None
+
+
+def _personal(asin: str, persona: str, item: dict | None, fit: dict | None) -> dict | None:
+    """A past-purchase note tied to THIS buyer, when their history matches the
+    item's brand or category. None if no sized item / no match."""
+    if item is None or fit is None:
+        return None
+    brand = _brand(item.get("title"))
+    cat = item.get("category")
+    for past in seed.purchase_profile(persona):
+        if past.get("brand") == brand or past.get("category") == cat:
+            matched_on = "brand" if past.get("brand") == brand else "category"
+            rec = fit.get("recommended_size")
+            direction = fit.get("direction")  # "up" | "down"
+            move = "size up to" if direction == "up" else "size down to"
+            label = brand if matched_on == "brand" else cat
+            copy = (
+                f"You bought a {past.get('title') or label} in {past['size']} — "
+                f"it {_OUTCOME_COPY.get(past['fit_outcome'], 'fit')}. "
+                f"This {label} {'runs slim' if direction == 'up' else 'runs large'}, "
+                f"so we suggest you {move} {rec}."
+            )
+            return {
+                "matched_on": matched_on,
+                "past_title": past.get("title"),
+                "past_size": past["size"],
+                "past_outcome": past["fit_outcome"],
+                "recommended_size": rec,
+                "copy": copy,
+            }
+    return None
+
+
+def size_advice(asin: str, persona: str | None = None) -> dict | None:
     """Fit proof (when the item is sized) + a resale hint, for any catalog ASIN.
 
     Returns None only if the ASIN isn't in the catalog at all. Non-sized items
@@ -44,5 +85,6 @@ def size_advice(asin: str) -> dict | None:
         "mrp": item["mrp"] if item else None,
         "thumb": item.get("thumb") if item else None,
         "fit": fit,
+        "personal": _personal(asin, persona, item, fit) if persona else None,
         "resale_hint": resale_hint,
     }

@@ -1,0 +1,7 @@
+{
+  "comment": "Per-persona past sized purchases for personalized fit advice (MT10 Fix 3). Matched by brand (first word of an item title) or category. fit_outcome in {fit_true, ran_small, ran_large}. Backs the `personal` block in GET /size-advice/{asin}?persona=...",
+  "rahul": [
+    {"brand": "Vastram", "category": "apparel", "size": "M", "fit_outcome": "fit_true", "title": "Vastram Linen Shirt"},
+    {"brand": "Aurelle", "category": "footwear", "size": "UK 8", "fit_outcome": "ran_small", "title": "Aurelle Trail Sneakers"}
+  ]
+}
