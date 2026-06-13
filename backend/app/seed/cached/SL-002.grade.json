@@ -1,0 +1,26 @@
+{
+  "same_unit": {
+    "verified": true,
+    "confidence": 0.95
+  },
+  "grade": "A",
+  "defects": [],
+  "completeness": [
+    {
+      "item": "original box",
+      "present": false
+    },
+    {
+      "item": "charger or power adapter",
+      "present": false
+    },
+    {
+      "item": "user manual",
+      "present": false
+    }
+  ],
+  "usage_detected": false,
+  "confidence": 0.95,
+  "justification": "The unit appears identical to the catalog and day-0 images with no visible wear, defects, or signs of use; only the accessories are missing.",
+  "model": "us.amazon.nova-2-lite-v1:0"
+}

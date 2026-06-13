@@ -1,0 +1,28 @@
+{
+  "same_unit": {
+    "verified": false,
+    "confidence": 0.0
+  },
+  "grade": "D",
+  "defects": [
+    {
+      "area": "sole",
+      "description": "Severe dirt and mud staining, sole texture altered, visible wear",
+      "severity": "major"
+    }
+  ],
+  "completeness": [
+    {
+      "item": "original box",
+      "present": false
+    },
+    {
+      "item": "spare laces",
+      "present": false
+    }
+  ],
+  "usage_detected": true,
+  "confidence": 0.9,
+  "justification": "The current shoe is visibly different from the catalog and day-0 images due to extensive dirt and wear, confirming it is not the same unit and has been used.",
+  "model": "us.amazon.nova-2-lite-v1:0"
+}

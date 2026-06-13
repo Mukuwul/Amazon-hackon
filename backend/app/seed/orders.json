@@ -1,0 +1,23 @@
+{
+  "comment": "Rahul's order history + dormant units of the monitor ASIN near the demand point. Used by GET /radar/{asin} (MT2).",
+  "demand_point": {"lat": 12.9352, "lon": 77.6245, "area": "Koramangala", "query": "baby monitor", "buyers_waiting": 3},
+  "dormant_units": [
+    {"item_id": "SL-002", "asin": "B0MONITOR1", "owner": "Rahul S.", "purchased_months_ago": 19, "distance_km": 2.3, "est_value": 1800},
+    {"item_id": "DU-101", "asin": "B0MONITOR1", "owner": "Sneha K.", "purchased_months_ago": 24, "distance_km": 3.1, "est_value": 1650},
+    {"item_id": "DU-102", "asin": "B0MONITOR1", "owner": "Arjun M.", "purchased_months_ago": 14, "distance_km": 1.8, "est_value": 2100},
+    {"item_id": "DU-103", "asin": "B0MONITOR1", "owner": "Divya R.", "purchased_months_ago": 30, "distance_km": 4.6, "est_value": 1400},
+    {"item_id": "DU-104", "asin": "B0MONITOR1", "owner": "Karthik P.", "purchased_months_ago": 22, "distance_km": 2.9, "est_value": 1700},
+    {"item_id": "DU-105", "asin": "B0MONITOR1", "owner": "Meera J.", "purchased_months_ago": 17, "distance_km": 3.8, "est_value": 1850},
+    {"item_id": "DU-106", "asin": "B0MONITOR1", "owner": "Vikram T.", "purchased_months_ago": 26, "distance_km": 4.9, "est_value": 1500},
+    {"item_id": "DU-107", "asin": "B0MONITOR1", "owner": "Ananya B.", "purchased_months_ago": 20, "distance_km": 2.1, "est_value": 1750},
+    {"item_id": "DU-108", "asin": "B0MONITOR1", "owner": "Rohit N.", "purchased_months_ago": 28, "distance_km": 3.4, "est_value": 1450},
+    {"item_id": "DU-109", "asin": "B0MONITOR1", "owner": "Priyanka L.", "purchased_months_ago": 15, "distance_km": 4.2, "est_value": 2000},
+    {"item_id": "DU-110", "asin": "B0MONITOR1", "owner": "Suresh G.", "purchased_months_ago": 21, "distance_km": 1.5, "est_value": 1800},
+    {"item_id": "DU-111", "asin": "B0MONITOR1", "owner": "Lakshmi V.", "purchased_months_ago": 23, "distance_km": 4.8, "est_value": 1600}
+  ],
+  "rahul_order_history": [
+    {"order_id": "171-8835520-SL002", "asin": "B0MONITOR1", "title": "NestCam Video Baby Monitor (5\" Display)", "purchase_date": "2024-11-02", "price_paid": 3200, "status": "delivered"},
+    {"order_id": "171-6722914-RH02", "asin": "B0STRLLR03", "title": "GlidePro Compact Baby Stroller", "purchase_date": "2024-09-18", "price_paid": 7499, "status": "delivered"},
+    {"order_id": "171-0034187-RH03", "asin": "B0CRIB0042", "title": "DreamNest Convertible Crib", "purchase_date": "2024-08-25", "price_paid": 11999, "status": "delivered"}
+  ]
+}

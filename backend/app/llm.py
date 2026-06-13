@@ -73,7 +73,72 @@ def _ask_openai(prompt: str) -> str:
     return resp.choices[0].message.content
 
 
+def _ask_bedrock_vision(prompt: str, images: list[bytes], system: str,
+                        max_tokens: int, temperature: float) -> str:
+    import boto3
+    from botocore.config import Config
+    cfg = Config(connect_timeout=5, read_timeout=15, retries={"max_attempts": 2})
+    client = boto3.client("bedrock-runtime", region_name=AWS_REGION, config=cfg)
+    content = [{"image": {"format": "jpeg", "source": {"bytes": b}}} for b in images]
+    content.append({"text": prompt})
+    resp = client.converse(
+        modelId=BEDROCK_MODEL_ID,
+        system=[{"text": system}],
+        messages=[{"role": "user", "content": content}],
+        inferenceConfig={"maxTokens": max_tokens, "temperature": temperature},
+    )
+    for part in resp["output"]["message"]["content"]:
+        if "text" in part:
+            return part["text"]
+    raise RuntimeError("Bedrock returned no text block")
+
+
+def _ask_gemini_vision(prompt: str, images: list[bytes], system: str,
+                       max_tokens: int, temperature: float) -> str:
+    from google import genai
+    from google.genai import types
+    client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
+    parts = [types.Part.from_bytes(data=b, mime_type="image/jpeg") for b in images]
+    parts.append(types.Part.from_text(text=prompt))
+    resp = client.models.generate_content(
+        model=GEMINI_MODEL,
+        contents=parts,
+        config=types.GenerateContentConfig(
+            system_instruction=system,
+            max_output_tokens=max_tokens,
+            temperature=temperature,
+        ),
+    )
+    if not resp.text:
+        raise RuntimeError("Gemini returned no text")
+    return resp.text
+
+
 _PROVIDERS = {"bedrock": _ask_bedrock, "gemini": _ask_gemini, "openai": _ask_openai}
+_VISION_PROVIDERS = {"bedrock": _ask_bedrock_vision, "gemini": _ask_gemini_vision}
+
+# Human-readable model id per provider, for the "model" field in AI responses.
+PROVIDER_MODEL = {"bedrock": BEDROCK_MODEL_ID, "gemini": GEMINI_MODEL, "openai": OPENAI_MODEL}
+
+
+def ask_llm_images(prompt: str, images: list[bytes], system: str,
+                   max_tokens: int = 1024, temperature: float = 0.2) -> tuple[str, str]:
+    """Multimodal ask with the same primary→fallback chain.
+
+    Returns (text, provider) so callers can report source: live-bedrock | live-gemini.
+    Raises if both vision-capable providers fail — callers fall back to cache.
+    """
+    order = [p for p in (PRIMARY, FALLBACK) if p in _VISION_PROVIDERS]
+    if not order:
+        raise RuntimeError("no vision-capable provider configured")
+    last_err: Exception | None = None
+    for provider in order:
+        try:
+            return _VISION_PROVIDERS[provider](prompt, images, system, max_tokens, temperature), provider
+        except Exception as e:
+            last_err = e
+            log.warning("Vision provider '%s' failed (%s).", provider, e)
+    raise last_err
 
 
 def ask_llm(prompt: str) -> str:

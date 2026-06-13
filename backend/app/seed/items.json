@@ -1,0 +1,172 @@
+{
+  "items": [
+    {
+      "item_id": "SL-001",
+      "asin": "B0SHOE500",
+      "title": "Aurelle Women's Running Shoes",
+      "category": "footwear",
+      "mrp": 500,
+      "age_months": 1,
+      "status": "return_initiated",
+      "persona": "priya",
+      "thumb": "/items/SL-001/current_1.jpg",
+      "return_reason": "size too small",
+      "rto": false,
+      "order": {
+        "order_id": "171-4402913-SL001",
+        "purchase_date": "2026-05-12",
+        "price_paid": 500,
+        "invoice_id": "INV-SL001-0512"
+      },
+      "warranty_months": 3,
+      "location": {"lat": 12.9716, "lon": 77.5946, "area": "Indiranagar"}
+    },
+    {
+      "item_id": "SL-002",
+      "asin": "B0MONITOR1",
+      "title": "NestCam Video Baby Monitor (5\" Display)",
+      "category": "electronics",
+      "mrp": 3500,
+      "age_months": 19,
+      "status": "idle",
+      "persona": "rahul",
+      "thumb": "/items/SL-002/current_1.jpg",
+      "return_reason": null,
+      "rto": false,
+      "order": {
+        "order_id": "171-8835520-SL002",
+        "purchase_date": "2024-11-02",
+        "price_paid": 3200,
+        "invoice_id": "INV-SL002-1102"
+      },
+      "warranty_months": 24,
+      "location": {"lat": 12.9352, "lon": 77.6245, "area": "Koramangala"}
+    },
+    {
+      "item_id": "SL-003",
+      "asin": "B0KURTA01",
+      "title": "Vastram Men's Cotton Kurta (Navy Blue)",
+      "category": "apparel",
+      "mrp": 899,
+      "age_months": 1,
+      "status": "return_initiated",
+      "persona": "filler",
+      "thumb": "/items/SL-003/current_1.jpg",
+      "return_reason": "colour not as shown",
+      "rto": false,
+      "order": {
+        "order_id": "171-2210448-SL003",
+        "purchase_date": "2026-05-20",
+        "price_paid": 749,
+        "invoice_id": "INV-SL003-0520"
+      },
+      "warranty_months": 0,
+      "location": {"lat": 12.9784, "lon": 77.6408, "area": "Domlur"}
+    },
+    {
+      "item_id": "SL-004",
+      "asin": "B0MIXER22",
+      "title": "PrimaChef 750W Mixer Grinder (Sealed)",
+      "category": "appliances",
+      "mrp": 2799,
+      "age_months": 0,
+      "status": "rto_in_transit",
+      "persona": "filler",
+      "thumb": "/items/SL-004/current_1.jpg",
+      "return_reason": "delivery refused (COD)",
+      "rto": true,
+      "order": {
+        "order_id": "171-9914372-SL004",
+        "purchase_date": "2026-06-08",
+        "price_paid": 2799,
+        "invoice_id": "INV-SL004-0608"
+      },
+      "warranty_months": 24,
+      "location": {"lat": 12.9982, "lon": 77.5530, "area": "Malleshwaram"}
+    },
+    {
+      "item_id": "SL-005",
+      "asin": "B0BOOK7765",
+      "title": "The Midnight Library (Paperback)",
+      "category": "books",
+      "mrp": 399,
+      "age_months": 6,
+      "status": "idle",
+      "persona": "filler",
+      "thumb": "/items/SL-005/current_1.jpg",
+      "return_reason": null,
+      "rto": false,
+      "order": {
+        "order_id": "171-5567301-SL005",
+        "purchase_date": "2025-12-10",
+        "price_paid": 299,
+        "invoice_id": "INV-SL005-1210"
+      },
+      "warranty_months": 0,
+      "location": {"lat": 12.9279, "lon": 77.6271, "area": "BTM Layout"}
+    },
+    {
+      "item_id": "SL-006",
+      "asin": "B0HDPHN880",
+      "title": "SonicWave ANC Over-Ear Headphones",
+      "category": "electronics",
+      "mrp": 4999,
+      "age_months": 11,
+      "status": "idle",
+      "persona": "filler",
+      "thumb": "/items/SL-006/current_1.jpg",
+      "return_reason": null,
+      "rto": false,
+      "order": {
+        "order_id": "171-3320185-SL006",
+        "purchase_date": "2025-07-15",
+        "price_paid": 4499,
+        "invoice_id": "INV-SL006-0715"
+      },
+      "warranty_months": 12,
+      "location": {"lat": 12.9698, "lon": 77.7499, "area": "Whitefield"}
+    },
+    {
+      "item_id": "SL-007",
+      "asin": "B0BOTTLE45",
+      "title": "HydraPeak 1L Insulated Steel Bottle",
+      "category": "home",
+      "mrp": 1299,
+      "age_months": 2,
+      "status": "return_initiated",
+      "persona": "filler",
+      "thumb": "/items/SL-007/current_1.jpg",
+      "return_reason": "ordered two by mistake",
+      "rto": false,
+      "order": {
+        "order_id": "171-7745098-SL007",
+        "purchase_date": "2026-04-11",
+        "price_paid": 1099,
+        "invoice_id": "INV-SL007-0411"
+      },
+      "warranty_months": 6,
+      "location": {"lat": 12.9610, "lon": 77.6387, "area": "HAL 2nd Stage"}
+    },
+    {
+      "item_id": "SL-008",
+      "asin": "B0BCKPCK19",
+      "title": "TrailMate 28L Laptop Backpack",
+      "category": "bags",
+      "mrp": 1899,
+      "age_months": 8,
+      "status": "idle",
+      "persona": "filler",
+      "thumb": "/items/SL-008/current_1.jpg",
+      "return_reason": null,
+      "rto": false,
+      "order": {
+        "order_id": "171-1186640-SL008",
+        "purchase_date": "2025-10-03",
+        "price_paid": 1599,
+        "invoice_id": "INV-SL008-1003"
+      },
+      "warranty_months": 12,
+      "location": {"lat": 12.9166, "lon": 77.6101, "area": "Jayanagar"}
+    }
+  ]
+}

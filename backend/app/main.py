@@ -1,11 +1,12 @@
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from mangum import Mangum
 from .llm import ask_llm
+from . import grading, passport, seed
 
-app = FastAPI(title="Amazon HackOn Starter API")
+app = FastAPI(title="Amazon Second Life API")
 
 # --- CORS ---
 # Handled HERE, in the app (works for both local uvicorn AND Lambda).
@@ -47,6 +48,34 @@ def health():
 @app.post("/chat", response_model=ChatOut)
 def chat(body: ChatIn):
     return ChatOut(reply=ask_llm(body.message))
+
+
+class GradeIn(BaseModel):
+    item_id: str = Field(..., min_length=1, max_length=20)
+    force_cached: bool = False
+
+
+@app.get("/items")
+def items():
+    return {"items": seed.list_items()}
+
+
+@app.get("/items/{item_id}")
+def item_detail(item_id: str):
+    item = seed.get_item(item_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="item not found")
+    return {"item": item, "passport": passport.get_events(item_id)}
+
+
+@app.post("/grade")
+def grade(body: GradeIn):
+    try:
+        return grading.grade_item(body.item_id, force_cached=body.force_cached)
+    except KeyError:
+        raise HTTPException(status_code=404, detail="item not found")
+    except grading.CacheMiss:
+        raise HTTPException(status_code=502, detail="ai_unavailable")
 
 
 # Lambda entrypoint. Locally you still run: uvicorn app.main:app --reload --port 8080

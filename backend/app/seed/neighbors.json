@@ -1,0 +1,20 @@
+{
+  "comment": "Synthetic local buyers with wishlists / notify-me signals. Used by VRS local_p2p eligibility and price-curve (MT2).",
+  "buyers": [
+    {"buyer_id": "NB-01", "name": "Asha D.", "distance_km": 3.2, "wishlist_asins": ["B0SHOE500"], "max_price": 310, "signal": "size_alert"},
+    {"buyer_id": "NB-02", "name": "Nikhil R.", "distance_km": 4.0, "wishlist_asins": ["B0SHOE500"], "max_price": 295, "signal": "wishlist"},
+    {"buyer_id": "NB-03", "name": "Farah S.", "distance_km": 2.7, "wishlist_asins": ["B0SHOE500"], "max_price": 280, "signal": "notify_me"},
+    {"buyer_id": "NB-04", "name": "Tanvi P.", "distance_km": 1.9, "wishlist_asins": ["B0MONITOR1"], "max_price": 1900, "signal": "search_recent"},
+    {"buyer_id": "NB-05", "name": "Imran K.", "distance_km": 3.5, "wishlist_asins": ["B0MONITOR1"], "max_price": 1750, "signal": "wishlist"},
+    {"buyer_id": "NB-06", "name": "Rhea M.", "distance_km": 4.4, "wishlist_asins": ["B0MONITOR1"], "max_price": 1550, "signal": "notify_me"},
+    {"buyer_id": "NB-07", "name": "Sandeep V.", "distance_km": 5.1, "wishlist_asins": ["B0HDPHN880"], "max_price": 2800, "signal": "wishlist"},
+    {"buyer_id": "NB-08", "name": "Pooja T.", "distance_km": 2.2, "wishlist_asins": ["B0HDPHN880"], "max_price": 2500, "signal": "search_recent"},
+    {"buyer_id": "NB-09", "name": "Aditya B.", "distance_km": 6.3, "wishlist_asins": ["B0BCKPCK19"], "max_price": 950, "signal": "wishlist"},
+    {"buyer_id": "NB-10", "name": "Kavya N.", "distance_km": 3.9, "wishlist_asins": ["B0BOTTLE45"], "max_price": 700, "signal": "notify_me"},
+    {"buyer_id": "NB-11", "name": "Manish G.", "distance_km": 4.7, "wishlist_asins": ["B0BOOK7765"], "max_price": 180, "signal": "wishlist"},
+    {"buyer_id": "NB-12", "name": "Sara J.", "distance_km": 2.8, "wishlist_asins": ["B0KURTA01"], "max_price": 450, "signal": "search_recent"},
+    {"buyer_id": "NB-13", "name": "Varun H.", "distance_km": 7.2, "wishlist_asins": ["B0MIXER22"], "max_price": 2200, "signal": "notify_me"},
+    {"buyer_id": "NB-14", "name": "Deepa C.", "distance_km": 5.6, "wishlist_asins": ["B0SHOE500"], "max_price": 260, "signal": "search_recent"},
+    {"buyer_id": "NB-15", "name": "Yash W.", "distance_km": 8.4, "wishlist_asins": ["B0MONITOR1"], "max_price": 1450, "signal": "wishlist"}
+  ]
+}
