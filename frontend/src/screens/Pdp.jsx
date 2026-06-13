@@ -31,6 +31,19 @@ export default function Pdp({ advice, onBack, onBuy, busy }) {
         </div>
       </div>
 
+      {/* personal history note (MT10) — tied to this buyer's past purchases */}
+      {advice.personal && (
+        <div className="px-4 pt-4">
+          <div className="rounded-2xl bg-sl-green-deep text-white p-4 shadow-card anim-fade-up">
+            <div className="flex items-center gap-1.5 mb-1.5">
+              <SLBadge />
+              <span className="text-[10px] font-800 uppercase tracking-wider text-sl-mint">From your purchases</span>
+            </div>
+            <p className="text-[13.5px] leading-snug">{advice.personal.copy}</p>
+          </div>
+        </div>
+      )}
+
       {/* size social proof — the prevent moment */}
       {fit && (
         <div className="px-4 pt-4">

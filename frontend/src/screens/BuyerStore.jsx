@@ -14,6 +14,7 @@ const FIT_ASINS = new Set(["B0SHOE500", "B0KURTA01"]);
 export default function BuyerStore({
   items, cart, cartLoading, orders, ordersLoading, notifications, notifLoading,
   busy, tab, onTab, onOpenPdp, onResell, onReturn, onCheckout, onNotif, onBack,
+  onFlash, onResells,
 }) {
   const cartCount = cart?.count || 0;
   const orderCount = orders?.length || 0;
@@ -26,12 +27,16 @@ export default function BuyerStore({
         <Tab active={tab === "shop"} onClick={() => onTab("shop")}>Shop</Tab>
         <Tab active={tab === "cart"} onClick={() => onTab("cart")}>Cart{cartCount ? ` · ${cartCount}` : ""}</Tab>
         <Tab active={tab === "orders"} onClick={() => onTab("orders")}>Your orders{orderCount ? ` · ${orderCount}` : ""}</Tab>
+        <Tab active={tab === "flash"} onClick={() => onTab("flash")}>Flash deals</Tab>
+        <Tab active={tab === "resells"} onClick={() => onTab("resells")}>My resells</Tab>
         <Tab active={tab === "notifications"} onClick={() => onTab("notifications")}>Notifications</Tab>
       </div>
 
       {tab === "shop" && <Shop items={items} onOpenPdp={onOpenPdp} />}
       {tab === "cart" && <Cart cart={cart} loading={cartLoading} busy={busy} onCheckout={onCheckout} onShop={() => onTab("shop")} />}
       {tab === "orders" && <Orders orders={orders} loading={ordersLoading} busy={busy} onResell={onResell} onReturn={onReturn} />}
+      {tab === "flash" && onFlash}
+      {tab === "resells" && onResells}
       {tab === "notifications" && <Notifications list={notifications} loading={notifLoading} busy={busy} onNotif={onNotif} />}
     </div>
   );
@@ -148,12 +153,18 @@ function Orders({ orders, loading, busy, onResell, onReturn }) {
             </div>
           </div>
           <div className="mt-3 flex gap-2">
-            <button
-              onClick={() => onReturn(o)}
-              className="flex-1 h-9 rounded-lg text-[12.5px] font-700 bg-white text-sl-ink ring-1 ring-sl-line hover:bg-sl-paper transition active:scale-[0.98]"
-            >
-              Return or replace
-            </button>
+            {o.return_window_open ? (
+              <button
+                onClick={() => onReturn(o)}
+                className="flex-1 h-9 rounded-lg text-[12.5px] font-700 bg-white text-sl-ink ring-1 ring-sl-line hover:bg-sl-paper transition active:scale-[0.98]"
+              >
+                Return or replace · {o.days_left}d left
+              </button>
+            ) : (
+              <span className="flex-1 h-9 rounded-lg text-[11px] font-600 text-sl-muted bg-sl-paper ring-1 ring-sl-line grid place-items-center text-center px-1 leading-tight">
+                Return window closed{o.return_by ? ` · ${fmtDate(o.return_by)}` : ""}
+              </span>
+            )}
             {o.resellable ? (
               <button
                 onClick={() => onResell(o)}

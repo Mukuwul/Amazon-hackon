@@ -48,9 +48,19 @@ export const api = {
   diagnose: (asin) => req("/diagnose-listing", { method: "POST", body: { asin } }),
   metrics: () => req("/metrics"),
   // MT7 — two-sided console. Stateless reads, no passport prereq → no *Safe wrapper.
-  sizeAdvice: (asin) => req(`/size-advice/${asin}`),
+  // MT10: sizeAdvice takes an optional persona for the personal history block.
+  sizeAdvice: (asin, persona) =>
+    req(`/size-advice/${asin}${persona ? `?persona=${persona}` : ""}`),
   sellerReturns: () => req("/seller/returns"),
   orders: (persona) => req(`/orders/${persona}`),
+  // MT10 — Ops returns desk + resell marketplace.
+  returns: () => req("/returns"),
+  addReturn: (body) => req("/returns", { method: "POST", body }),
+  resellQuote: (body) => req("/resell/quote", { method: "POST", body }),
+  createListing: (body) => req("/resell/listings", { method: "POST", body }),
+  listings: () => req("/resell/listings"),
+  listing: (id) => req(`/resell/listings/${id}`),
+  addInterest: (id, body = {}) => req(`/resell/listings/${id}/interest`, { method: "POST", body }),
   // MT9 — buyer storefront. Cart is a per-instance overlay; the rest are seed reads.
   cart: (persona) => req(`/cart/${persona}`),
   addToCart: (persona, asin, size, qty = 1) =>

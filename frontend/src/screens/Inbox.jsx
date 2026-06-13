@@ -9,14 +9,6 @@ const STATUS = {
   rto_in_transit: { label: "RTO in transit", cls: "bg-sky-50 text-sky-700 ring-sky-200" },
 };
 
-// The four playable lanes off the inbox. Each maps an item to its dedicated flow
-// (App routes by item_id); everything else stays a display-only QUEUED row.
-const LANE = {
-  "SL-002": { chip: "IDLE · RADAR", cls: "bg-sky-50 text-sky-700 ring-sky-200", who: "Rahul", sub: "idle 19 months — demand is already searching" },
-  "SL-003": { chip: "LISTING FIX", cls: "bg-violet-50 text-violet-700 ring-violet-200", who: null, sub: "fix the listing that causes the returns" },
-  "SL-004": { chip: "RTO · SEALED", cls: "bg-emerald-50 text-emerald-700 ring-emerald-200", who: null, sub: "sealed box — re-offer locally, no scan" },
-};
-
 function StageToggle({ value, onChange }) {
   return (
     <div className="flex items-center rounded-full bg-white ring-1 ring-sl-line p-0.5 text-[10px] font-700 leading-none">
@@ -36,16 +28,23 @@ function StageToggle({ value, onChange }) {
   );
 }
 
-export default function Inbox({ items, metrics, loading, forceCached, onForceCached, onOpen, onShowMetrics, onBack }) {
+// Ops returns desk (MT10 Fix 2). Two sections only — Returns to process and
+// COD refused / RTO. The idle/radar (SL-002) and seller-diagnose (SL-003) lanes
+// moved out to the Buyer/Seller views, de-mixing the desk. The SL-001 hero is the
+// live-gradeable spine; other return rows (incl. buyer-initiated ones from
+// /returns) are display-only "queued for grading".
+export default function Inbox({ items, returns, metrics, loading, forceCached, onForceCached, onOpen, onShowMetrics, onBack }) {
   const hero = items.find((i) => i.item_id === "SL-001");
-  const lanes = ["SL-002", "SL-003", "SL-004"].map((id) => items.find((i) => i.item_id === id)).filter(Boolean);
-  const queued = items.filter((i) => i.item_id !== "SL-001" && !LANE[i.item_id]);
+  const returnItems = items.filter((i) => i.status === "return_initiated" && i.item_id !== "SL-001");
+  const rto = items.filter((i) => i.status === "rto_in_transit");
+  const dyn = returns || [];
+  const returnsCount = (hero ? 1 : 0) + returnItems.length + dyn.length;
 
   return (
     <div className="screen-scroll bg-sl-paper">
       <TopBar
         title="Second Life"
-        subtitle="Returns & idle items"
+        subtitle="Returns desk"
         onBack={onBack}
         right={<StageToggle value={forceCached} onChange={onForceCached} />}
       />
@@ -61,8 +60,8 @@ export default function Inbox({ items, metrics, loading, forceCached, onForceCac
             Products without a second chance
           </p>
           <div className="mt-1 flex items-end gap-2">
-            <span className="font-display font-800 text-4xl leading-none tnum">{items.length || "—"}</span>
-            <span className="text-white/70 text-[13px] mb-0.5">items in your account</span>
+            <span className="font-display font-800 text-4xl leading-none tnum">{returnsCount || "—"}</span>
+            <span className="text-white/70 text-[13px] mb-0.5">items awaiting a second life</span>
           </div>
           {metrics && (
             <p className="mt-2 text-[12px] text-sl-green-soft font-600">
@@ -79,11 +78,12 @@ export default function Inbox({ items, metrics, loading, forceCached, onForceCac
         </button>
       </div>
 
+      {/* Section 1 — returns to process */}
       <p className="px-5 pt-5 pb-2 text-[11px] font-700 uppercase tracking-wider text-sl-muted">
-        Ready for a second life
+        Returns to process
       </p>
 
-      <div className="px-4 space-y-2.5 pb-8">
+      <div className="px-4 space-y-2.5">
         {loading && [0, 1, 2].map((i) => <RowSkeleton key={i} />)}
 
         {hero && (
@@ -91,12 +91,7 @@ export default function Inbox({ items, metrics, loading, forceCached, onForceCac
             onClick={() => onOpen(hero)}
             className="group w-full text-left rounded-2xl bg-white ring-1 ring-sl-green/40 shadow-card p-3 flex gap-3 transition hover:ring-sl-green hover:shadow-pop active:scale-[0.99] anim-fade-up"
           >
-            <Thumb
-              src={hero.thumb}
-              alt={hero.title}
-              category={hero.category}
-              className="w-[72px] h-[72px] rounded-xl shrink-0"
-            />
+            <Thumb src={hero.thumb} alt={hero.title} category={hero.category} className="w-[72px] h-[72px] rounded-xl shrink-0" />
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5 mb-0.5">
                 <SLBadge />
@@ -115,60 +110,98 @@ export default function Inbox({ items, metrics, loading, forceCached, onForceCac
           </button>
         )}
 
-        {lanes.map((it, idx) => {
-          const lane = LANE[it.item_id];
-          return (
-            <button
-              key={it.item_id}
-              onClick={() => onOpen(it)}
-              className="group w-full text-left rounded-2xl bg-white ring-1 ring-sl-line shadow-card p-3 flex gap-3 transition hover:ring-sl-green/60 hover:shadow-pop active:scale-[0.99] anim-fade-up"
-              style={{ animationDelay: `${60 + idx * 50}ms` }}
-            >
-              <Thumb
-                src={it.thumb}
-                alt={it.title}
-                category={it.category}
-                className="w-[60px] h-[60px] rounded-xl shrink-0"
-              />
-              <div className="min-w-0 flex-1">
-                <span className={`inline-block rounded-full px-2 py-0.5 text-[9.5px] font-800 tracking-wide ring-1 ${lane.cls}`}>
-                  {lane.chip}
-                </span>
-                <h3 className="font-600 text-[13.5px] leading-tight text-sl-ink truncate mt-1">{it.title}</h3>
-                <p className="text-[11px] text-sl-muted mt-0.5 leading-snug truncate">
-                  {lane.who ? `${lane.who} · ` : ""}{lane.sub}
-                </p>
-              </div>
-              <Chevron />
-            </button>
-          );
-        })}
-
-        {queued.map((it, idx) => (
-          <div
+        {/* static return-class items (display-only, queued for grading) */}
+        {returnItems.map((it, idx) => (
+          <QueuedReturn
             key={it.item_id}
-            className="rounded-2xl bg-white/70 ring-1 ring-sl-line p-3 flex gap-3 anim-fade-up"
-            style={{ animationDelay: `${240 + idx * 45}ms` }}
-          >
-            <Thumb
-              src={it.thumb}
-              alt={it.title}
-              category={it.category}
-              className="w-14 h-14 rounded-xl shrink-0 opacity-90"
-            />
-            <div className="min-w-0 flex-1">
-              <h3 className="font-600 text-[13px] leading-tight text-sl-ink/80 truncate">{it.title}</h3>
-              <div className="mt-1 flex items-center gap-2">
-                <StatusChip status={it.status} />
-                <span className="text-[11px] text-sl-muted truncate">{inr(it.order?.price_paid ?? it.mrp)}</span>
-              </div>
-            </div>
-            <span className="self-center text-[10px] font-700 text-sl-muted bg-sl-paper rounded-full px-2 py-1 ring-1 ring-sl-line shrink-0">
-              QUEUED
-            </span>
-          </div>
+            title={it.title}
+            category={it.category}
+            thumb={it.thumb}
+            reason={it.return_reason}
+            price={it.order?.price_paid ?? it.mrp}
+            delay={60 + idx * 50}
+          />
         ))}
+
+        {/* dynamic returns from /returns (seeded extras + buyer-initiated) */}
+        {dyn.map((r, idx) => (
+          <QueuedReturn
+            key={r.return_id}
+            title={r.title}
+            category={r.category}
+            thumb={r.thumb}
+            reason={r.return_reason}
+            price={r.price_paid}
+            buyer={r.source === "buyer"}
+            delay={120 + idx * 45}
+          />
+        ))}
+
+        {!loading && returnsCount === 0 && (
+          <p className="text-[12.5px] text-sl-muted px-1 py-4">No returns waiting.</p>
+        )}
       </div>
+
+      {/* Section 2 — COD refused / RTO */}
+      {rto.length > 0 && (
+        <>
+          <p className="px-5 pt-6 pb-2 text-[11px] font-700 uppercase tracking-wider text-sl-muted">
+            COD refused / RTO
+          </p>
+          <div className="px-4 space-y-2.5 pb-8">
+            {rto.map((it, idx) => (
+              <button
+                key={it.item_id}
+                onClick={() => onOpen(it)}
+                className="group w-full text-left rounded-2xl bg-white ring-1 ring-sl-line shadow-card p-3 flex gap-3 transition hover:ring-emerald-300 hover:shadow-pop active:scale-[0.99] anim-fade-up"
+                style={{ animationDelay: `${idx * 50}ms` }}
+              >
+                <Thumb src={it.thumb} alt={it.title} category={it.category} className="w-[60px] h-[60px] rounded-xl shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <span className="inline-block rounded-full px-2 py-0.5 text-[9.5px] font-800 tracking-wide ring-1 bg-emerald-50 text-emerald-700 ring-emerald-200">
+                    RTO · SEALED
+                  </span>
+                  <h3 className="font-600 text-[13.5px] leading-tight text-sl-ink truncate mt-1">{it.title}</h3>
+                  <p className="text-[11px] text-sl-muted mt-0.5 leading-snug truncate">
+                    {it.return_reason || "delivery refused"} · sealed box — re-offer locally, no scan
+                  </p>
+                </div>
+                <Chevron />
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div className="pb-8" />
+    </div>
+  );
+}
+
+// A display-only return row (not live-gradeable) — keeps the desk bulletproof on
+// photoless items. Buyer-initiated rows get a distinguishing chip.
+function QueuedReturn({ title, category, thumb, reason, price, buyer, delay }) {
+  return (
+    <div
+      className="rounded-2xl bg-white/80 ring-1 ring-sl-line p-3 flex gap-3 anim-fade-up"
+      style={{ animationDelay: `${delay}ms` }}
+    >
+      <Thumb src={thumb} alt={title} category={category} className="w-14 h-14 rounded-xl shrink-0 opacity-95" />
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          {buyer && (
+            <span className="inline-block rounded-full px-2 py-0.5 text-[9px] font-800 tracking-wide ring-1 bg-sl-mint text-sl-green-deep ring-sl-green/30">
+              BUYER RETURN
+            </span>
+          )}
+          <h3 className="font-600 text-[13px] leading-tight text-sl-ink/85 truncate">{title}</h3>
+        </div>
+        {reason && <p className="text-[11px] text-sl-muted mt-0.5 truncate">“{reason}”</p>}
+        {price != null && <p className="text-[11px] text-sl-muted mt-0.5">Paid {inr(price)}</p>}
+      </div>
+      <span className="self-center text-[10px] font-700 text-sl-muted bg-sl-paper rounded-full px-2 py-1 ring-1 ring-sl-line shrink-0">
+        QUEUED
+      </span>
     </div>
   );
 }

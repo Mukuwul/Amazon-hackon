@@ -19,6 +19,10 @@ import BuyerStore from "./screens/BuyerStore";
 import Pdp from "./screens/Pdp";
 import Checkout from "./screens/Checkout";
 import SellerDashboard from "./screens/SellerDashboard";
+import ResellConfirm from "./screens/ResellConfirm";
+import ResellPrice from "./screens/ResellPrice";
+import FlashDeals from "./screens/FlashDeals";
+import MyResells from "./screens/MyResells";
 
 // Each inbox item drives a dedicated flow. SL-001 is the ⭐ spine; the rest are
 // the MT4 supporting beats. Anything not mapped here stays QUEUED in the inbox.
@@ -46,6 +50,13 @@ export default function App() {
   const [sellerLoading, setSellerLoading] = useState(false);
   const [busyAsin, setBusyAsin] = useState(null);
   const [advice, setAdvice] = useState(null); // size-advice payload for the PDP
+  const [returns, setReturns] = useState(null); // MT10 Ops returns desk (/returns)
+
+  // MT10 resell flow (order-history Resell → confirm → photo → price/range → list)
+  const [resellItem, setResellItem] = useState(null);
+  const [resellQuote, setResellQuote] = useState(null);
+  const [resellRange, setResellRange] = useState(7);
+  const [resellGrade, setResellGrade] = useState("B");
 
   const [item, setItem] = useState(null);
   const [lane, setLane] = useState("spine");
@@ -274,6 +285,7 @@ export default function App() {
   function openOps() {
     setErr(null);
     setScreen("inbox");
+    api.returns().then((d) => setReturns(d.returns)).catch(() => setReturns([]));
   }
 
   function openBuyer(tab = "shop") {
@@ -314,7 +326,7 @@ export default function App() {
     setErr(null);
     setBusy(true);
     try {
-      const a = await api.sizeAdvice(gridItem.asin);
+      const a = await api.sizeAdvice(gridItem.asin, PERSONA);
       setAdvice(a);
       setScreen("pdp");
     } catch (e) {
@@ -400,11 +412,94 @@ export default function App() {
     }
   }
 
+  // MT10 — a buyer return posts to the returns store → shows on the Ops desk.
   function returnOrder(order) {
-    setToast({
-      title: "Return started",
-      message: `${order.title} → heading to the Returns desk for grading.`,
-    });
+    api.addReturn({
+      persona: PERSONA,
+      order_id: order.order_id,
+      asin: order.asin,
+      title: order.title,
+      return_reason: "buyer-initiated return",
+      price_paid: order.price_paid,
+    })
+      .then((entry) => {
+        setReturns((prev) => (prev ? [entry, ...prev] : [entry]));
+        setToast({
+          title: "Return started",
+          message: `${order.title} → sent to the Returns desk for AI grading.`,
+        });
+      })
+      .catch((e) => setErr({ message: `Couldn't start the return (${e.detail || e.message}).` }));
+  }
+
+  // MT10 — order-history Resell → confirm sheet → photo→AI price → price/range → list.
+  // (The notification idle-monitor nudge still uses the old resellOrder→radar flow.)
+  async function startResell(order) {
+    if (!order.resellable || !order.item_id) return;
+    setErr(null);
+    resetItemState();
+    setOrigin("buyer");
+    setResellRange(7);
+    setResellGrade("B");
+    setResellQuote(null);
+    setBusy(true);
+    try {
+      const detail = await api.item(order.item_id).catch(() => null);
+      const it = detail ? { ...detail.item } : { item_id: order.item_id, asin: order.asin, title: order.title };
+      setResellItem({ ...it, order });
+      const q = await api.resellQuote({ item_id: it.item_id, range_km: 7, grade: "B" }).catch(() => null);
+      setResellQuote(q);
+      setScreen("resellConfirm");
+    } catch (e) {
+      setErr({ message: `Couldn't open resell (${e.detail || e.message}).`, retry: () => startResell(order) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resellGradePhotos(currentImages) {
+    setErr(null);
+    setBusy(true);
+    try {
+      // Grade the uploaded photos (cached floor so it never blocks on a live call);
+      // the grade letter drives the suggested resale price.
+      const g = await api.grade(resellItem.item_id, true, currentImages);
+      const grade = g.grade || "B";
+      setResellGrade(grade);
+      const q = await api.resellQuote({ item_id: resellItem.item_id, range_km: resellRange, grade });
+      setResellQuote(q);
+      setScreen("resellPrice");
+    } catch (e) {
+      setErr({ message: `Couldn't price the photos (${e.detail || e.message}).` });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resellSetRange(km) {
+    setResellRange(km);
+    try {
+      const q = await api.resellQuote({ item_id: resellItem.item_id, range_km: km, grade: resellGrade });
+      setResellQuote(q);
+    } catch (e) {
+      setErr({ message: `Couldn't re-price (${e.detail || e.message}).` });
+    }
+  }
+
+  async function resellList({ ask_price, range_km }) {
+    setBusy(true);
+    try {
+      await api.createListing({ item_id: resellItem.item_id, persona: PERSONA, ask_price, range_km });
+      setToast({
+        title: "Listed on Flash deals",
+        message: `${resellItem.title} · ${inr(ask_price)} — buyers within ${range_km} km can tap “I'm interested”.`,
+      });
+      openBuyer("resells");
+    } catch (e) {
+      setErr({ message: `Couldn't list (${e.detail || e.message}).`, retry: () => resellList({ ask_price, range_km }) });
+    } finally {
+      setBusy(false);
+    }
   }
 
   // notification tap → the idle-monitor nudge resells; the rest are informational
@@ -451,6 +546,7 @@ export default function App() {
         {screen === "inbox" && (
           <Inbox
             items={items}
+            returns={returns}
             metrics={metrics}
             loading={itemsLoading}
             forceCached={forceCached}
@@ -473,10 +569,12 @@ export default function App() {
             tab={buyerTab}
             onTab={setBuyerTab}
             onOpenPdp={openPdp}
-            onResell={resellOrder}
+            onResell={startResell}
             onReturn={returnOrder}
             onCheckout={openCheckout}
             onNotif={openNotif}
+            onFlash={<FlashDeals />}
+            onResells={<MyResells persona={PERSONA} />}
             onBack={goHome}
           />
         )}
@@ -490,6 +588,27 @@ export default function App() {
             onConfirm={confirmCheckout}
             onDone={() => openBuyer("shop")}
             onBack={() => { setBuyerTab("cart"); setScreen("buyer"); }}
+          />
+        )}
+        {screen === "resellConfirm" && resellItem && (
+          <ResellConfirm
+            order={resellItem.order}
+            item={resellItem}
+            busy={busy}
+            quotePreview={resellQuote}
+            onGrade={resellGradePhotos}
+            onBack={() => openBuyer("orders")}
+          />
+        )}
+        {screen === "resellPrice" && resellItem && resellQuote && (
+          <ResellPrice
+            item={resellItem}
+            quote={resellQuote}
+            range={resellRange}
+            busy={busy}
+            onRange={resellSetRange}
+            onList={resellList}
+            onBack={() => setScreen("resellConfirm")}
           />
         )}
         {screen === "seller" && (
