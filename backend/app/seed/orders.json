@@ -18,6 +18,8 @@
   "rahul_order_history": [
     {"order_id": "171-8835520-SL002", "asin": "B0MONITOR1", "title": "NestCam Video Baby Monitor (5\" Display)", "purchase_date": "2024-11-02", "price_paid": 3200, "status": "delivered"},
     {"order_id": "171-6722914-RH02", "asin": "B0STRLLR03", "title": "GlidePro Compact Baby Stroller", "purchase_date": "2024-09-18", "price_paid": 7499, "status": "delivered"},
-    {"order_id": "171-0034187-RH03", "asin": "B0CRIB0042", "title": "DreamNest Convertible Crib", "purchase_date": "2024-08-25", "price_paid": 11999, "status": "delivered"}
+    {"order_id": "171-0034187-RH03", "asin": "B0CRIB0042", "title": "DreamNest Convertible Crib", "purchase_date": "2024-08-25", "price_paid": 11999, "status": "delivered"},
+    {"order_id": "171-7781002-RH04", "asin": "B0KURTA01", "title": "Vastram Men's Cotton Kurta (Navy Blue)", "purchase_date": "2026-06-09", "price_paid": 899, "status": "delivered"},
+    {"order_id": "171-5540198-RH05", "asin": "B0SHOE500", "title": "Aurelle Women's Running Shoes", "purchase_date": "2026-06-11", "price_paid": 500, "status": "delivered"}
   ]
 }
