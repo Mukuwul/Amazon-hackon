@@ -16,7 +16,19 @@ $Registry = "$AccountId.dkr.ecr.$Region.amazonaws.com"
 $ImageUri = "$Registry/$EcrRepo`:latest"
 
 Write-Host "==> Logging in to ECR ($Registry)" -ForegroundColor Cyan
-aws ecr get-login-password --region $Region | docker login --username AWS --password-stdin $Registry
+# The ecr-login credential helper (~/.docker/config.json "credHelpers") authenticates
+# the push on its own, so this explicit login is belt-and-suspenders. Under
+# $ErrorActionPreference="Stop", a stderr write from docker login (the cosmetic ECR
+# 400) is promoted to a terminating error and aborts the script before build/push.
+# Run it tolerantly so the rest of the deploy always proceeds.
+try {
+    $ErrorActionPreference = "Continue"
+    aws ecr get-login-password --region $Region | docker login --username AWS --password-stdin $Registry
+} catch {
+    Write-Host "    ECR login was noisy; relying on the ecr-login credential helper for the push." -ForegroundColor DarkYellow
+} finally {
+    $ErrorActionPreference = "Stop"
+}
 
 Write-Host "==> Building image for linux/amd64 (Lambda is x86_64)" -ForegroundColor Cyan
 # --provenance=false keeps the pushed artifact a plain image manifest, which Lambda requires.

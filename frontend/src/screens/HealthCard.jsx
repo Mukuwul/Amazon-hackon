@@ -3,10 +3,14 @@ import Thumb from "../components/Thumb";
 import { FooterAction, SLBadge } from "../components/ui";
 import { inr, gradeColor, gradeLabel } from "../lib/format";
 
-export default function HealthCard({ item, card, listed, building, onList, onBack }) {
+export default function HealthCard({ item, card, previews, listed, building, onList, onBack }) {
   const prov = card.provenance || {};
   const w = card.warranty || {};
   const topDefect = card.defects?.[0];
+  // Prefer the photos uploaded this session over the card's stored photos: uploaded
+  // images live in a per-instance store, so a cold/parallel Lambda can rebuild the
+  // card off seed photos. The session previews keep the agent's own evidence on screen.
+  const photos = previews?.length ? previews : card.photos;
 
   return (
     <div className="screen-scroll bg-sl-paper">
@@ -130,10 +134,10 @@ export default function HealthCard({ item, card, listed, building, onList, onBac
           )}
 
           {/* photos */}
-          {card.photos?.length > 0 && (
+          {photos?.length > 0 && (
             <div className="px-3 pb-4">
               <div className="flex gap-2">
-                {card.photos.slice(0, 3).map((src, i) => (
+                {photos.slice(0, 3).map((src, i) => (
                   <Thumb key={i} src={src} alt={`Photo ${i + 1}`} category={item.category} className="flex-1 h-16 rounded-lg ring-1 ring-sl-line" />
                 ))}
               </div>

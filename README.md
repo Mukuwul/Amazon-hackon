@@ -2,112 +2,195 @@
 
 **Every product finds its next best owner.**
 
-An intelligent layer *inside* the Amazon order flow that gives returned, unused, and
-outgrown products a second life instead of a one-way trip to a warehouse or landfill.
-Built for **HackOn with Amazon — Season 6**.
+A layer *inside* the Amazon order flow that gives returned, unused, and outgrown
+products a second life instead of a one-way trip to a warehouse or a landfill. Built for
+**HackOn with Amazon — Season 6** (Stores track · *"Products Without a Second Chance"*).
 
-**Live demo:** https://amazon-hackon.vercel.app
-**API (AWS Lambda Function URL):** https://ahwfmhaqed45p5xxk2u663oi6m0mejgi.lambda-url.ca-central-1.on.aws
+- **Live demo:** https://amazon-hackon.vercel.app
+- **API (AWS Lambda Function URL):** https://ahwfmhaqed45p5xxk2u663oi6m0mejgi.lambda-url.ca-central-1.on.aws
+
+![Landing](docs/screenshots/01-landing.png)
 
 ---
 
 ## The problem
 
-Stores track "Products Without a Second Chance" — items that get returned, sit idle, or
-are outgrown and never re-enter circulation. Today a return defaults to a reverse trip to
-a distant warehouse: expensive, slow, and often ending in write-off. Most of the value, and
-most of the trust, is lost on the way.
+When a ₹500 pair of shoes is returned, the cheapest thing Amazon can do with it is
+destroy its value. Reverse shipping (₹120) + inspection (₹40) + re-photograph and relist
+(₹60) comes to about **₹220 of cost on a ₹150 margin**, so the item is liquidated for
+scrap or written off. The return travels 600 km to die.
 
-## What it does — the ⭐ spine
+This is not a corner case. It is the long tail of returns, and the numbers are large:
 
-1. **Scan & delta-grade.** A returns agent uploads the unit's *current* photos. A multimodal
-   vision model grades them **against that unit's own day-0 "birth-certificate" photos** — so
-   the score is about real wear on *this* unit, not a generic catalog image. A same-unit trust
-   gate flags anything that isn't the unit that was delivered.
-2. **Value Recovery Score (VRS).** A deterministic Python engine prices six recovery paths
-   (local P2P, warehouse relist, refurbish, liquidate, donate, RTO relist), nets each against
-   its real costs, and routes the item to its highest-rupee path. Local interception usually
-   beats the warehouse round-trip.
-3. **Product Health Card.** A transferable trust record — provenance, the AI grade report,
-   remaining transferable warranty, and a price-decay curve — that travels with the item.
-4. **Idle Asset Radar.** Activates dormant inventory sitting in people's homes by matching it
-   to live local demand, and surfaces a "Your Things" dormant-value view + a personal green ledger.
+- **~$890 billion** of merchandise was returned in the US in 2024 — about **16.9% of
+  retail sales** ([NRF & Happy Returns, 2024](https://nrf.com/media-center/press-releases/nrf-and-happy-returns-report-2024-retail-returns-total-890-billion)).
+- In India, **COD orders return at ~24–28%**, with COD return-to-origin alone near **26%**
+  ([Shipway, 2024](https://mediabrief.com/shipnotes-reveals-26-rto-rate-on-cod-orders-across-india/)).
+- Reverse logistics runs **₹200–400 per returned item** — often more than the item's
+  margin ([Edgistify](https://www.edgistify.com/resources/blogs/cost-of-returns-india)).
 
-**Design rule:** the LLM is a *perception layer only*. Every rupee on screen comes from
-deterministic Python and a real API field — never hardcoded JSX — so a judge can open the
-network tab and audit the math.
+Premium goods absorb that cost. Cheap goods can't, so they're thrown away.
+
+## The idea
+
+A return is not a logistics problem. It is an **information-destruction problem**.
+
+When the shoes were bought, Amazon already held everything about them: catalog photos,
+specs, price history, the invoice, demand signals. The moment they're returned, all of it
+is treated as dead — the item becomes an anonymous object that must be expensively
+*re-identified*: re-photographed, re-described, re-priced, re-inspected. That
+re-identification labor is the ₹220 that exceeds the ₹150 margin.
+
+The only genuinely new fact about a returned product is **its current condition**. Capture
+that condition in about two seconds with a phone camera and the relisting cost collapses
+toward zero. The premium-versus-cheap asymmetry disappears, and no product is too cheap to
+save.
+
+This is only possible for Amazon — catalog, order history, invoices, lockers, payment
+trust, and a last-mile fleet. A standalone marketplace structurally cannot copy it.
+
+## How it works — the core flow
+
+A returns agent scans the unit at handoff and uploads its current photos. From there the
+item moves through four stages, each one a real API call you can audit in the network tab.
+
+### 1. Scan and delta-grade
+
+The grader compares the **current photos against that unit's own day-0 "birth-certificate"
+photos** — not a generic catalog image — and returns the *delta*: localized defects with
+severity, a grade A–D, a confidence score, and a same-unit check that flags swap fraud and
+worn-then-returned items. Low-confidence grades route to a human queue.
+
+![Delta-grade report](docs/screenshots/04-delta-grade.png)
+
+### 2. Value Recovery Score
+
+A deterministic engine prices six recovery paths (local P2P, warehouse relist, refurbish,
+liquidate, donate, sealed RTO relist), nets each against its real costs, and routes the
+item to its highest-rupee path — **showing the math**. On the worn ₹500 shoe, a local hop
+recovers **+₹83** against the warehouse round-trip's **−₹129**: a ₹212 swing, and 597 km
+of reverse freight cut. The cascade strip shows where the item goes next, week by week, if
+it doesn't sell locally.
+
+![Recovery path](docs/screenshots/05-recovery-path.png)
+
+### 3. Product Health Card
+
+A transferable trust record travels with the item: provenance, the grading report,
+remaining **warranty that transfers to the next owner** (because Amazon holds the original
+invoice), and a price-decay curve that prices in the urgency to list now.
+
+![Product Health Card](docs/screenshots/06-health-card.png)
+
+### 4. Idle Asset Radar
+
+Order history is a map of dormant inventory sitting in millions of homes. The radar inverts
+the marketplace — **demand activates supply**: when buyers search nearby, owners of a
+matching dormant unit get a one-tap resell nudge priced from the same engine.
+
+![Idle Asset Radar](docs/screenshots/08-idle-radar.png)
+
+> **The design rule:** the vision model is a *perception layer only*. Every rupee on screen
+> comes from deterministic Python and a real API field — never hardcoded in the UI — so the
+> math is auditable. A failed live model call falls back to a committed cached response and
+> the screen looks identical.
+
+## Two-sided console — prevent, recover, recirculate
+
+The recovery flow above is the centerpiece. Around it, the console covers the full lifecycle
+a product can hit, across three entry points on the landing page.
+
+**Recover** is the agent flow above. **Recirculate** is the buyer storefront — shop with fit
+proof, resell what you already own, and meet recovered units on the normal product page.
+**Prevent** is the seller dashboard — a worst-first return-rate table where tapping a
+high-return listing shows the AI-diagnosed fix (for example, *"your photos show navy;
+returned units photograph royal blue"*) and the projected return-rate drop.
+
+| Buyer storefront | Seller dashboard |
+|---|---|
+| ![Buyer storefront](docs/screenshots/07-buyer-storefront.png) | ![Seller dashboard](docs/screenshots/09-seller-dashboard.png) |
 
 ## Architecture
 
 ```
 React 19 + Tailwind v4 (Vite)  ──►  FastAPI on AWS Lambda (container, ca-central-1,
-   on Vercel                          Function URL) + Mangum
-                                         │
-                                         ├─ Perception: Gemini 2.5 Flash (primary)
-                                         │              → Bedrock Nova 2 Lite (failover)
-                                         │              → committed cached response
-                                         ├─ Money math: deterministic Python (VRS, pricing)
-                                         └─ Product Passport: DynamoDB event log
-                                            (behind DYNAMODB_TABLE_NAME; in-memory fallback)
+   web console on Vercel               Function URL) + Mangum
+                                          │
+                                          ├─ Perception: Gemini 2.5 Flash (primary)
+                                          │              → Bedrock Nova 2 Lite (failover)
+                                          │              → committed cached response
+                                          ├─ Money math: deterministic Python (VRS, pricing)
+                                          └─ Product Passport: DynamoDB event log
+                                             (behind DYNAMODB_TABLE_NAME; in-memory fallback)
 ```
 
-- **Provider-agnostic perception.** Primary/fallback are env-driven (`LLM_PRIMARY`/`LLM_FALLBACK`).
-  Gemini Flash has free-tier headroom; Nova 2 Lite on AWS credits is the always-available backstop.
-- **Demo never blocks.** Repo-baked seed items + cached AI responses, and a `FORCE_CACHED=1`
-  kill switch, mean a failed live call on stage is invisible. A DynamoDB outage degrades to an
-  in-memory store. See `docs/architecture.md`.
+- **Provider-agnostic perception.** Primary and fallback are env-driven
+  (`LLM_PRIMARY` / `LLM_FALLBACK`). Gemini Flash has free-tier headroom; Nova 2 Lite on AWS
+  credits is the always-available backstop. Both are vision-capable, so failover covers the
+  multimodal calls.
+- **The demo never blocks.** Repo-baked seed items and committed cached AI responses, plus a
+  `FORCE_CACHED=1` kill switch, mean a failed live call on stage is invisible. A DynamoDB
+  outage degrades to an in-memory store. When a cache serves an uploaded photo, the UI says
+  so plainly rather than passing it off as live analysis.
+
+Full system design, the VRS constants, the grading prompt, and the production pipeline are
+in [docs/architecture.md](docs/architecture.md).
 
 ## Run it locally
 
 **Backend** (Python 3.11+):
+
 ```bash
 cd backend
 pip install -r requirements.txt
-# create .env from .env.example (GEMINI_API_KEY, AWS creds for Bedrock failover, etc.)
+# create .env from .env.example (GEMINI_API_KEY, AWS creds for the Bedrock failover, etc.)
 uvicorn app.main:app --reload --port 8080
 ```
 
 **Frontend** (Node 18+):
+
 ```bash
 cd frontend
 npm install
-npm run dev        # http://localhost:5173  (must be localhost, not 127.0.0.1 — CORS is origin-exact)
+npm run dev        # http://localhost:5173  — use localhost, not 127.0.0.1 (CORS is origin-exact)
 ```
-`frontend/.env.local` can point `VITE_API_URL` at a local backend; it defaults to the deployed
-Function URL, so the frontend runs against prod with no local backend.
+
+`frontend/.env.local` can point `VITE_API_URL` at a local backend; it defaults to the
+deployed Function URL, so the frontend runs against production with no local backend.
 
 ## Deploy
 
 - **Frontend** auto-deploys to Vercel on `git push origin main`.
-- **Backend** — `cd backend; ./deploy.ps1` (Docker must be running) builds the container, pushes
-  to ECR, and updates the Lambda. See `docs/lessons.md` for the ECR cred-helper note.
+- **Backend** — `cd backend; ./deploy.ps1` (Docker must be running) builds the container,
+  pushes to ECR, and updates the Lambda.
 
-## Key environment variables (backend)
+## Environment variables (backend)
 
-| Var | Purpose |
-|-----|---------|
-| `LLM_PRIMARY` / `LLM_FALLBACK` | provider chain (`gemini` / `bedrock`) |
+| Variable | Purpose |
+|----------|---------|
+| `LLM_PRIMARY` / `LLM_FALLBACK` | provider chain — defaults `gemini` / `bedrock` |
 | `GEMINI_API_KEY`, `GEMINI_MODEL` | Gemini perception (`gemini-2.5-flash`) |
 | `BEDROCK_MODEL_ID`, `AWS_REGION` | Bedrock Nova failover |
 | `DYNAMODB_TABLE_NAME` | enable the persistent passport + demo stores (optional) |
 | `ALLOWED_ORIGINS` | CORS allowlist (defaults to localhost + the Vercel app) |
 | `FORCE_CACHED` | `1` → serve only cached AI responses (stage kill switch) |
+| `METRICS_RESET_TOKEN` | token gating `POST /metrics/reset` (presenter tool) |
 | `ENABLE_CHAT` | `1` → re-enable the legacy `/chat` endpoint (off by default) |
-| `METRICS_RESET_TOKEN` | token to gate `POST /metrics/reset` (presenter tool) |
 
 ## Repo layout
 
 ```
 backend/app/    FastAPI app — grading, vrs, pricing, healthcard, radar, inspection,
                 resell, returns, buyer, your_things, green_ledger, store (DynamoDB), …
-backend/tests/  VRS reconciliation + hero golden test
-frontend/src/   React screens (the demo console) + lib/api.js
-docs/           PRD, architecture, api-spec, tasks, lessons, demo script
+backend/tests/  VRS reconciliation + hero golden + cache-floor guard
+backend/scripts/ cache capture + failover drill
+frontend/src/   React screens (the web console) + lib/api.js
+docs/           PRD, architecture, api-spec, demo script, screenshots
 ```
 
 ## Documentation
 
-- `docs/PRD.md` — the submission deliverable
-- `docs/architecture.md` — system design, VRS math, GenAI core, failover/seed path
-- `docs/api-spec.md` — every endpoint
-- `docs/demo-and-prfaq.md` — 3-minute demo beat sheet + jury Q&A
+- [docs/PRD.md](docs/PRD.md) — the submission deliverable
+- [docs/architecture.md](docs/architecture.md) — system design, VRS math, GenAI core, failover path
+- [docs/api-spec.md](docs/api-spec.md) — every endpoint
+- [docs/demo-and-prfaq.md](docs/demo-and-prfaq.md) — 3-minute demo beat sheet + jury Q&A

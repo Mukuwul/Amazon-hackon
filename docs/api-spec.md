@@ -163,7 +163,7 @@ The global `/metrics` impact scoped to one persona's own products: CO₂ / landf
 → `200 {"persona": "rahul", "items_diverted": 2, "co2_saved_kg": 4.7, "landfill_diverted_kg": 2.3}` (per-persona baseline; the seller persona `vastram` reads higher).
 
 ## GET /returns · POST /returns  *(MT10 — Ops returns desk)*
-The Ops returns desk = static return-class items (`/items` where `status` is `return_initiated`/`rto_in_transit`) **+** this store. The store holds seeded placeholder extras (`seed/returns_seed.json`) plus any return a buyer initiates from order history. In-memory **per-Lambda-instance** (cart pattern) — a cold start resets to the seed.
+The Ops returns desk = static return-class items (`/items` where `status` is `return_initiated`/`rto_in_transit`) **+** this store. The store holds seeded placeholder extras (`seed/returns_seed.json`) plus any return a buyer initiates from order history. **DynamoDB-backed when `DYNAMODB_TABLE_NAME` is set** (cross-instance, survives a cold start); in-memory per-Lambda-instance fallback otherwise.
 - `GET /returns` → `200 {"returns": [{"return_id": "RTN-B001", "title": "...", "category": "apparel", "thumb": "...", "return_reason": "...", "price_paid": 899, "order_id": "...", "persona": "rahul", "source": "buyer"|"seed", "status": "queued", "created_ts": "..."}, ...]}` (newest first; buyer returns ahead of seeded extras).
 - `POST /returns` body `{"persona": "rahul", "order_id": "...", "asin": "B0KURTA01", "title": "...", "category": "apparel"?, "thumb": "..."?, "return_reason": "..."?, "price_paid": 899?}` → appends a `source:"buyer"` entry (`return_id` `RTN-B00N`) and returns it. The buyer's Return button posts here; the row then shows on the Ops desk.
 
@@ -172,7 +172,7 @@ Deterministic resale economics for an order item; trades reach for price. Body `
 → `200 {"item_id": "SL-002", "range_km": 7, "grade": "B", "ai_suggested": 978, "reachable_buyers": 3, "best_price": 1076, "delivery_cut": 67, "net": 1009, "points": [{"price": 1076, "est_days_to_sell": 3, "buyers_at_price": 3}, ...], "recommended": 1550, "range_tiers": [{"range_km": 3, "reachable_buyers": 1, "delivery_cut": 43}, {"range_km": 7, "reachable_buyers": 3, "delivery_cut": 67}, {"range_km": 15, "reachable_buyers": 4, "delivery_cut": 115}]}`
 
 ## POST /resell/listings · GET /resell/listings · GET /resell/listings/{id} · POST /resell/listings/{id}/interest  *(MT10 — flash-deals board + live cross-tab interest)*
-In-memory **per-Lambda-instance** marketplace (seeded with 2 starter listings so the board isn't empty). Cross-tab works locally (one uvicorn process) and on a single warm Lambda.
+Flash-deals marketplace (seeded with 2 starter listings so the board isn't empty). **DynamoDB-backed when `DYNAMODB_TABLE_NAME` is set** — cross-tab interest is then durable across instances; otherwise in-memory per-Lambda-instance, which still works locally (one uvicorn process) and on a single warm Lambda.
 - `POST /resell/listings` body `{"item_id": "SL-002", "persona": "rahul", "ask_price": 1000, "range_km": 7}` → `200 {"listing_id": "RL-003", "item_id": "...", "asin": "...", "title": "...", "thumb": "...", "ask_price": 1000, "range_km": 7, "delivery_cut": 67, "net": 933, "owner": "rahul", "interests": [], "created_ts": "..."}`.
 - `GET /resell/listings` → `200 {"listings": [ ...newest first... ]}` (the public board).
 - `GET /resell/listings/{id}` → the listing incl. its `interests` (the reseller polls this for the live feed). `404` if unknown.
@@ -183,7 +183,7 @@ In-memory **per-Lambda-instance** marketplace (seeded with 2 starter listings so
 - `POST /resell/from-route/{item_id}` *(MT12 NEW 9)* → lists a graded return on the public board when its VRS winner is `local_p2p` (price = the engine's `resale_value`, `grade`/`confidence` from the GRADED event, `owner: "Amazon · Returned"`, `source: "return"`). Idempotent per item. `409` if the item isn't routed to `local_p2p`.
 
 ## GET /cart/{persona}  *(MT9 — buyer storefront)*
-The persona's cart (per-Lambda-instance overlay, seeded from `seed/buyer.json`; a cold start resets to the seed). Total + count are computed server-side. `404` if the persona has no seeded storefront.
+The persona's cart, seeded from `seed/buyer.json`. **DynamoDB-backed when `DYNAMODB_TABLE_NAME` is set** (recoverable after a cold start); in-memory per-instance overlay otherwise. Total + count are computed server-side. `404` if the persona has no seeded storefront.
 → `200 {"persona": "rahul", "lines": [{"asin": "B0SHOE500", "item_id": "SL-001", "title": "...", "category": "footwear", "size": "UK 9", "qty": 1, "price": 500, "thumb": "/items/SL-001/current_1.jpg"}, ...], "count": 2, "total": 1399}`
 
 ## POST /cart/{persona}  *(MT9)*

@@ -10,3 +10,10 @@ __pycache__/
 skills-lock.json
 .gsd-profile
 Products/
+
+# Internal working docs — useful for the team while building, not for the submission
+CLAUDE.md
+docs/STATE.md
+docs/lessons.md
+docs/db-setup.md
+docs/superpowers/

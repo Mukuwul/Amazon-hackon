@@ -3,8 +3,10 @@
 Primary provider is tried first; if it raises (throttling, validation, network,
 missing creds, etc.) it transparently falls back to the secondary provider.
 Configure with env vars:
-    LLM_PRIMARY   = bedrock | gemini | openai   (default: bedrock)
-    LLM_FALLBACK  = bedrock | gemini | openai   (default: gemini)
+    LLM_PRIMARY   = gemini | bedrock | openai   (default: gemini)
+    LLM_FALLBACK  = gemini | bedrock | openai   (default: bedrock)
+The deployed chain is Gemini 2.5 Flash (primary) -> Bedrock Nova 2 Lite (failover);
+Gemini Flash has free-tier headroom, Nova on AWS credits is the always-on backstop.
 Per-provider settings (region, model, keys) are read from the same .env.
 """
 import os
@@ -15,8 +17,8 @@ load_dotenv()  # read backend/.env
 
 log = logging.getLogger("llm")
 
-PRIMARY = os.getenv("LLM_PRIMARY", "bedrock").lower()
-FALLBACK = os.getenv("LLM_FALLBACK", "gemini").lower()
+PRIMARY = os.getenv("LLM_PRIMARY", "gemini").lower()
+FALLBACK = os.getenv("LLM_FALLBACK", "bedrock").lower()
 
 AWS_REGION = os.getenv("AWS_REGION", "ca-central-1")
 BEDROCK_MODEL_ID = os.getenv("BEDROCK_MODEL_ID", "us.amazon.nova-2-lite-v1:0")

@@ -832,6 +832,7 @@ export default function App() {
           <HealthCard
             item={item}
             card={card}
+            previews={gradePreviews}
             listed={listed}
             building={false}
             onList={listItem}

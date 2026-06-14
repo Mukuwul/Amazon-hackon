@@ -2,7 +2,7 @@
 
 The LLM is a perception layer only — it returns structured condition facts
 (validated against GradeCore); all rupee math happens downstream in vrs.py.
-Chain: Bedrock Nova 2 Lite → Gemini 2.5 Flash → committed cached response.
+Chain: Gemini 2.5 Flash → Bedrock Nova 2 Lite → committed cached response.
 Invalid JSON gets one retry with the validation error in the prompt.
 """
 import base64
