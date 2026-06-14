@@ -1,10 +1,11 @@
 import { useState } from "react";
 
-// Landing page — the original dark "stage" identity restored. Brand rail on the
-// left (every product finds its next best owner + the live-engine line); where the
-// phone used to sit, three buttons forward into the console: Returns desk (Ops) ·
-// Buyer · Seller. No top bar here — the slim Amazon chrome appears only after you
-// pick a view (WebShell wraps the inner pages, not this landing).
+// Landing page — MT13 reskin: the brand identity relit on the whitish aurora canvas
+// (emerald light pooled in the corners + micro-grain), no longer the dark stage.
+// Brand rail on the left (every product finds its next best owner + the live-engine
+// line); where the phone used to sit, three door-cards forward into the console:
+// Returns desk (Ops) · Buyer · Seller. No top bar here — the slim Amazon chrome
+// appears only after you pick a view (WebShell wraps the inner pages, not this landing).
 //
 // Top-right: a guest login. Picking a role mints a UNIQUE per-browser id (so resell
 // "My resells" vs "Flash deals" and return attribution are distinct per person); the
@@ -17,26 +18,26 @@ const ROLES = [
 
 export default function Home({ onOps, onBuyer, onSeller, guest, onPickRole, onNewGuest }) {
   return (
-    <div className="stage-bg stage-grain relative min-h-[100dvh] w-full flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 p-6 sm:p-8">
+    <div className="aurora-bg aurora-grain relative min-h-[100dvh] w-full flex flex-col lg:flex-row items-center justify-center gap-12 lg:gap-16 p-6 sm:p-8">
       <div className="absolute top-4 right-4 sm:top-6 sm:right-6 z-20">
         <GuestMenu guest={guest} onPickRole={onPickRole} onNewGuest={onNewGuest} />
       </div>
       {/* brand rail — context that this is a layer inside Amazon */}
-      <aside className="flex flex-col max-w-sm text-white/90">
+      <aside className="flex flex-col max-w-sm">
         <div className="flex items-center gap-2 mb-7">
-          <Leaf className="w-7 h-7 text-sl-green-soft" />
-          <span className="font-display font-700 text-xl tracking-tight">Second Life</span>
+          <Leaf className="w-7 h-7 text-sl-green" />
+          <span className="font-display font-700 text-xl tracking-tight text-az-navy">Second Life</span>
         </div>
-        <h1 className="font-display font-700 text-[2.2rem] sm:text-[2.6rem] leading-[1.05] tracking-tight">
+        <h1 className="font-display font-700 text-[2.2rem] sm:text-[2.6rem] leading-[1.05] tracking-tight text-az-navy text-balance">
           Every product finds its next&nbsp;best owner.
         </h1>
-        <p className="mt-5 text-white/55 text-[15px] leading-relaxed">
+        <p className="mt-5 text-sl-muted text-[15px] leading-relaxed text-pretty">
           An intelligent layer inside the Amazon returns flow. AI delta-grades each item against its
-          own day-0 photos, then routes it to the highest-rupee second life — before it ever reaches
+          own day-0 photos, then routes it to the highest-rupee second life, before it ever reaches
           a warehouse.
         </p>
-        <div className="mt-8 flex items-center gap-2 text-white/40 text-xs">
-          <span className="inline-block w-1.5 h-1.5 rounded-full bg-sl-green-soft animate-pulse" />
+        <div className="mt-8 flex items-center gap-2 text-sl-muted text-xs">
+          <span className="inline-block w-1.5 h-1.5 rounded-full bg-sl-green animate-pulse" />
           Live demo · connected to the deployed grading engine
         </div>
       </aside>
@@ -73,13 +74,13 @@ function ViewButton({ onClick, label, role, icon, primary }) {
       onClick={onClick}
       className={`group text-left rounded-2xl px-5 py-4 flex items-center gap-4 ring-1 transition hover:-translate-y-0.5 active:translate-y-0 ${
         primary
-          ? "bg-sl-green text-white ring-sl-green-soft/60 shadow-pop hover:bg-sl-green-deep"
-          : "bg-white/[0.06] text-white ring-white/12 hover:bg-white/[0.1] hover:ring-white/25"
+          ? "bg-sl-green text-white ring-sl-green-deep/25 shadow-pop hover:bg-sl-green-deep"
+          : "bg-white text-az-navy ring-sl-line shadow-card hover:ring-sl-green/40 hover:shadow-pop"
       }`}
     >
       <span
         className={`w-11 h-11 shrink-0 rounded-xl grid place-items-center ${
-          primary ? "bg-white/15 text-white" : "bg-sl-green-soft/15 text-sl-green-soft"
+          primary ? "bg-white/15 text-white" : "bg-sl-mint text-sl-green-deep"
         }`}
       >
         {icon}
@@ -88,16 +89,16 @@ function ViewButton({ onClick, label, role, icon, primary }) {
         <span className="flex items-center gap-2">
           <span className="font-display font-700 text-[18px] leading-none">{label}</span>
           {primary && (
-            <span className="text-[10px] font-800 tracking-wide text-white/70 border border-white/25 rounded-full px-1.5 py-0.5">
+            <span className="text-[10px] font-800 tracking-wide text-white/85 border border-white/30 rounded-full px-1.5 py-0.5">
               START HERE
             </span>
           )}
         </span>
-        <span className={`mt-1 block text-[12.5px] leading-snug ${primary ? "text-white/80" : "text-white/55"}`}>
+        <span className={`mt-1 block text-[12.5px] leading-snug ${primary ? "text-white/85" : "text-sl-muted"}`}>
           {role}
         </span>
       </span>
-      <svg viewBox="0 0 24 24" className="w-5 h-5 shrink-0 opacity-50 group-hover:opacity-100 group-hover:translate-x-0.5 transition" fill="none">
+      <svg viewBox="0 0 24 24" className={`w-5 h-5 shrink-0 transition group-hover:translate-x-0.5 ${primary ? "opacity-70 group-hover:opacity-100" : "text-sl-muted opacity-60 group-hover:opacity-100 group-hover:text-sl-green"}`} fill="none">
         <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     </button>
@@ -113,26 +114,26 @@ function GuestMenu({ guest, onPickRole, onNewGuest }) {
       {open && <button className="fixed inset-0 z-0 cursor-default" aria-label="Close" onClick={() => setOpen(false)} />}
       <button
         onClick={() => setOpen((o) => !o)}
-        className="relative z-10 flex items-center gap-2 rounded-full bg-white/[0.08] ring-1 ring-white/15 px-3.5 py-2 text-white/90 text-[13px] font-700 hover:bg-white/[0.13] hover:ring-white/30 transition"
+        className="relative z-10 flex items-center gap-2 rounded-full bg-white ring-1 ring-sl-line shadow-card px-3.5 py-2 text-az-navy text-[13px] font-700 hover:ring-sl-green/40 hover:bg-sl-mint/40 transition"
       >
         <UserIcon />
         {guest ? (
           <span className="flex items-center gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-sl-green-soft" />
+            <span className="w-1.5 h-1.5 rounded-full bg-sl-green" />
             {guest.id}
-            {roleLabel && <span className="text-white/45 font-600">· {roleLabel}</span>}
+            {roleLabel && <span className="text-sl-muted font-600">· {roleLabel}</span>}
           </span>
         ) : (
           <span>Sign in as guest</span>
         )}
-        <svg viewBox="0 0 24 24" className={`w-3.5 h-3.5 opacity-60 transition ${open ? "rotate-180" : ""}`} fill="none">
+        <svg viewBox="0 0 24 24" className={`w-3.5 h-3.5 text-sl-muted transition ${open ? "rotate-180" : ""}`} fill="none">
           <path d="M6 9l6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 z-10 w-60 rounded-2xl bg-[#10151c] ring-1 ring-white/12 shadow-pop p-1.5 anim-fade-up">
-          <p className="px-3 pt-2 pb-1.5 text-[10.5px] font-800 uppercase tracking-wider text-white/35">
+        <div className="absolute right-0 mt-2 z-10 w-60 rounded-2xl bg-white ring-1 ring-sl-line shadow-pop p-1.5 anim-fade-up">
+          <p className="px-3 pt-2 pb-1.5 text-[10.5px] font-800 uppercase tracking-wider text-sl-muted">
             {guest ? "Switch role" : "Continue as a guest"}
           </p>
           {ROLES.map((r) => {
@@ -142,21 +143,21 @@ function GuestMenu({ guest, onPickRole, onNewGuest }) {
                 key={r.key}
                 onClick={() => { onPickRole(r.key); setOpen(false); }}
                 className={`w-full text-left rounded-xl px-3 py-2.5 flex items-center gap-2.5 transition ${
-                  active ? "bg-sl-green/15 ring-1 ring-sl-green-soft/40" : "hover:bg-white/[0.06]"
+                  active ? "bg-sl-mint ring-1 ring-sl-green/30" : "hover:bg-sl-paper"
                 }`}
               >
                 <span className="min-w-0 flex-1">
-                  <span className="block text-[13.5px] font-700 text-white leading-none">{r.label}</span>
-                  <span className="block mt-1 text-[11.5px] text-white/45 leading-none">{r.hint}</span>
+                  <span className="block text-[13.5px] font-700 text-az-navy leading-none">{r.label}</span>
+                  <span className="block mt-1 text-[11.5px] text-sl-muted leading-none">{r.hint}</span>
                 </span>
-                {active && <span className="text-[10px] font-800 text-sl-green-soft">YOU</span>}
+                {active && <span className="text-[10px] font-800 text-sl-green-deep">YOU</span>}
               </button>
             );
           })}
           {guest && (
             <button
               onClick={() => { onNewGuest(); setOpen(false); }}
-              className="w-full text-left rounded-xl px-3 py-2.5 mt-0.5 border-t border-white/8 text-[12px] font-600 text-white/55 hover:bg-white/[0.06] transition"
+              className="w-full text-left rounded-xl px-3 py-2.5 mt-0.5 border-t border-sl-line text-[12px] font-600 text-sl-muted hover:bg-sl-paper transition"
             >
               + New guest identity
             </button>

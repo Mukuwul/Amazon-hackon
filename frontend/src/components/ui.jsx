@@ -36,14 +36,14 @@ export function SourceTag({ source, model, latency }) {
     <span
       className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-600"
       style={{
-        background: live ? "var(--color-sl-mint)" : "#eceadf",
-        color: live ? "var(--color-sl-green-deep)" : "#7a7560",
+        background: live ? "var(--color-sl-mint)" : "#e9eeec",
+        color: live ? "var(--color-sl-green-deep)" : "#5b6964",
       }}
       title={model ? `${model}${latency ? ` · ${latency}ms` : ""}` : undefined}
     >
       <span
         className="w-1.5 h-1.5 rounded-full"
-        style={{ background: live ? "var(--color-sl-green)" : "#b6b09a" }}
+        style={{ background: live ? "var(--color-sl-green)" : "#a6b0ab" }}
       />
       {live ? `Live AI · ${source.replace("live-", "")}` : "Cached"}
     </span>

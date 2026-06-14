@@ -16,12 +16,12 @@
   --color-sl-mint: #d8f3e8;
   --color-sl-mint-deep: #aee5d0;
 
-  /* surfaces + ink */
-  --color-sl-paper: #f6f3ec;
+  /* surfaces + ink — cool near-white, a whisper of emerald (MT13 reskin, not warm cream) */
+  --color-sl-paper: #f4f8f6;
   --color-sl-card: #ffffff;
-  --color-sl-ink: #1b211f;
-  --color-sl-muted: #6b7670;
-  --color-sl-line: #e7e3d8;
+  --color-sl-ink: #161d1a;
+  --color-sl-muted: #5b6964;
+  --color-sl-line: #e2e9e5;
 
   /* semantic money */
   --color-pos: #1fa37a;
@@ -61,19 +61,22 @@
   }
 }
 
-/* ---- ambient stage backdrop (desktop) ---- */
-.stage-bg {
-  background:
-    radial-gradient(1100px 700px at 18% -10%, #1c3a31 0%, transparent 55%),
-    radial-gradient(900px 600px at 110% 20%, #102b24 0%, transparent 50%),
-    linear-gradient(160deg, #0c1a16 0%, #0a1411 60%, #0b1512 100%);
+/* ---- ambient light backdrop (MT13) — emerald aurora pooled in the top corners
+   over the cool off-white, plus a ~2% film grain. The light twin of the old dark
+   stage; subtle, alive, never fights content. ---- */
+.aurora-bg {
+  background-color: var(--color-sl-paper);
+  background-image:
+    radial-gradient(1000px 600px at 8% -12%, rgba(31, 163, 122, 0.12) 0%, transparent 60%),
+    radial-gradient(820px 520px at 112% 4%, rgba(52, 199, 154, 0.09) 0%, transparent 55%),
+    radial-gradient(700px 700px at 50% 120%, rgba(31, 163, 122, 0.05) 0%, transparent 60%);
 }
-.stage-grain::before {
+.aurora-grain::before {
   content: "";
   position: fixed;
   inset: 0;
   pointer-events: none;
-  opacity: 0.05;
+  opacity: 0.022;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -234,7 +237,7 @@
 .skel {
   position: relative;
   overflow: hidden;
-  background: #ece8de;
+  background: #e7ecea;
 }
 .skel::after {
   content: "";

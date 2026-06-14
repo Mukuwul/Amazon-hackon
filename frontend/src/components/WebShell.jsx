@@ -7,7 +7,7 @@ const ROLE_LABEL = { buyer: "Buyer", seller: "Seller", ops: "Returns desk" };
 
 export default function WebShell({ children, onHome, guest }) {
   return (
-    <div className="min-h-[100dvh] w-full bg-sl-paper flex flex-col">
+    <div className="min-h-[100dvh] w-full aurora-bg aurora-grain flex flex-col">
       <header className="sticky top-0 z-40 bg-az-navy text-white">
         <div className="mx-auto w-full max-w-6xl px-4 sm:px-6 h-14 flex items-center justify-between">
           <button

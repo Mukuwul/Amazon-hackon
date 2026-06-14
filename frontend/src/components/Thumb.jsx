@@ -3,16 +3,16 @@ import { useState } from "react";
 const CAT = {
   footwear: { glyph: "👟", tint: "#e6efe9" },
   electronics: { glyph: "🎧", tint: "#e6edf3" },
-  apparel: { glyph: "👕", tint: "#efe9e3" },
-  appliances: { glyph: "🧰", tint: "#ece9e1" },
-  books: { glyph: "📖", tint: "#efe8df" },
+  apparel: { glyph: "👕", tint: "#e9ece9" },
+  appliances: { glyph: "🧰", tint: "#e7ece9" },
+  books: { glyph: "📖", tint: "#eaeeea" },
   home: { glyph: "🧴", tint: "#e6eeeb" },
-  bags: { glyph: "🎒", tint: "#ebe8e2" },
+  bags: { glyph: "🎒", tint: "#e8ece9" },
 };
 
 export default function Thumb({ src, alt, category, className = "", glyphScale = 1.7 }) {
   const [failed, setFailed] = useState(!src);
-  const cat = CAT[category] || { glyph: "📦", tint: "#ededed" };
+  const cat = CAT[category] || { glyph: "📦", tint: "#eaeeec" };
 
   if (failed) {
     return (
