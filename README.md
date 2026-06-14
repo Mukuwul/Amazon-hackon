@@ -2,7 +2,9 @@
 
 **Every product finds its next best owner.**
 
-An **END TO END SOLUTION** designed by starting from the **CUSTOMER** and working backwards. It integrates directly *inside* the Amazon order flow to give returned, unused, and outgrown products a second life instead of a one-way trip to a warehouse or a landfill. Built for **HackOn with Amazon — Season 6** (Stores track · *"Products Without a Second Chance"*).
+A layer *inside* the Amazon order flow that gives returned, unused, and outgrown
+products a second life instead of a one-way trip to a warehouse or a landfill. Built for
+**HackOn with Amazon — Season 6** (Stores track · *"Products Without a Second Chance"*).
 
 - **Live demo:** https://amazon-hackon.vercel.app
 
@@ -12,7 +14,7 @@ An **END TO END SOLUTION** designed by starting from the **CUSTOMER** and workin
 
 # Problems We're Solving
 
-To address these challenges, we started from the **CUSTOMER** and worked backwards, designing an **END TO END SOLUTION** to tackle the three core problems in the returns-and-resale economy:
+Three problems in the returns-and-resale economy — all rooted in the same gap: a product's fate is decided too late, too centrally, and at too much cost.
 
 ---
 
@@ -94,7 +96,7 @@ trust, and a last-mile fleet. A standalone marketplace structurally cannot copy 
 
 ## How it works — the core flow
 
-Working backwards from the **CUSTOMER**'s perspective, our **END TO END SOLUTION** manages the entire lifecycle of a product. Whether a returns agent scans a unit at handoff or an owner resells a dormant product from their order history, the item moves through five stages — each backed by real API calls you can audit in the network tab:
+Whether a returns agent scans a unit at handoff or an owner resells a dormant product from their order history, the item moves through five stages — each backed by real API calls you can audit in the network tab.
 
 ### 1. Scan and delta-grade
 
@@ -147,7 +149,8 @@ Owners can list dormant products directly from their order history using a **two
 
 ## Two-sided console — prevent, recover, recirculate
 
-The recovery flow above is the centerpiece. Around it, this **END TO END SOLUTION** covers the full lifecycle a product can hit, starting from the **CUSTOMER**'s prevention entry points to operational recovery, across three areas on the landing page:
+The recovery flow above is the centerpiece. Around it, the console covers the full lifecycle
+a product can hit, across three entry points on the landing page.
 
 **Recover** is the agent flow above. **Recirculate** is the buyer storefront — shop with fit
 proof, resell what you already own, and meet recovered units on the normal product page.
@@ -161,8 +164,6 @@ returned units photograph royal blue"*) and the projected return-rate drop.
 
 ## Architecture
 
-### System Infrastructure
-
 ```
 React 19 + Tailwind v4 (Vite)  ──►  FastAPI on AWS Lambda (container, ca-central-1,
    web console on Vercel               Function URL) + Mangum
@@ -174,32 +175,6 @@ React 19 + Tailwind v4 (Vite)  ──►  FastAPI on AWS Lambda (container, ca-c
                                           └─ Product Passport: DynamoDB event log
                                              (behind DYNAMODB_TABLE_NAME; in-memory fallback)
 ```
-
-### System Execution Flow
-
-```mermaid
-flowchart LR
-    subgraph CT["Customer touchpoints"]
-        A["Guided photo capture\nat return initiation"] --> G
-        R["One-tap resell\nfrom order history"] --> P
-        D["Demand: search/wishlist\nnear the item"] --> IAR
-    end
-
-    subgraph GAI["GenAI core - Gemini 2.5 Flash multimodal, Nova failover"]
-        G["Delta-Grader\ncatalog + birth-certificate vs now"] --> V["grade, defects,\nconfidence, same-unit"]
-        S["Seal-Check\nrTO lane"] --> V
-        L["Listing Diagnostics\nlisting vs returned photos"] --> PATCH["Auto-patch listing"]
-    end
-
-    subgraph DE["Deterministic engines"]
-        V --> VC["winner + visible math"]
-        IAR["Idle Asset Radar\ngeo-match order history"] --> P
-    end
-    P[Product Passport\nDynamoDB event log] <--> G & V & HC
-    HC[Product Health Card\n+ warranty transfer] --> BUY[Next owner\nPDP row / locker / agent hop]
-    V -.->|confidence < 0.70| HQ["Human review queue"]
-```
-
 
 - **Provider-agnostic perception.** Primary and fallback are env-driven
   (`LLM_PRIMARY` / `LLM_FALLBACK`). Gemini Flash has free-tier headroom; Nova 2 Lite on AWS
@@ -270,4 +245,3 @@ docs/           PRD, architecture, api-spec, tasks, screenshots
 - [docs/PRD.md](docs/PRD.md) — the submission deliverable
 - [docs/architecture.md](docs/architecture.md) — system design, VRS math, GenAI core, failover path
 - [docs/api-spec.md](docs/api-spec.md) — every endpoint
-- [docs/tasks.md](docs/tasks.md) — implementation report and verification checklist
