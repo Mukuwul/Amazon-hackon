@@ -174,20 +174,15 @@ function Orders({ orders, loading, busy, onResell, onReturn, onReplace }) {
                 Return window closed{o.return_by ? ` · ${fmtDate(o.return_by)}` : ""}
               </span>
             )}
-            {o.resellable ? (
-              <button
-                onClick={() => onResell(o)}
-                disabled={busy}
-                className="w-full h-9 rounded-lg text-[12.5px] font-800 bg-sl-green text-white hover:bg-sl-green-deep transition active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-1.5"
-              >
-                {busy && <Spinner className="w-3.5 h-3.5" />}
-                Resell on Second Life
-              </button>
-            ) : (
-              <span className="w-full h-9 rounded-lg text-[11px] font-600 text-sl-muted bg-sl-paper ring-1 ring-sl-line grid place-items-center">
-                No local demand yet
-              </span>
-            )}
+            {/* Every item can be resold — listing it creates the flash-deal, demand follows */}
+            <button
+              onClick={() => onResell(o)}
+              disabled={busy}
+              className="w-full h-9 rounded-lg text-[12.5px] font-800 bg-sl-green text-white hover:bg-sl-green-deep transition active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-1.5"
+            >
+              {busy && <Spinner className="w-3.5 h-3.5" />}
+              Resell on Second Life
+            </button>
           </div>
         </div>
       ))}
