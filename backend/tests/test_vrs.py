@@ -58,8 +58,32 @@ def test_sl001_hero_golden():
     assert by_path["local_p2p"]["recovery"] > by_path["warehouse_relist"]["recovery"]
 
 
+def test_renewed_vs_quick_commerce_channel():
+    """MT14 fix-3 — electronics route through Amazon Renewed (renewed_channel on the
+    eligible local_p2p path, no dark_store); everyday goods keep the Amazon Now dark
+    store. The economics are unchanged — only the named destination differs."""
+    # Footwear (SL-001) → quick commerce dark store, never Renewed.
+    shoe = seed.get_item("SL-001")
+    buyers, resale, refurb = _resale_pair(shoe, "D")
+    shoe_local = {p["path"]: p for p in vrs.build_paths(
+        shoe, "D", resale, refurb, buyers, is_sealed_rto=False)}["local_p2p"]
+    assert vrs.quick_commerce_eligible("footwear") is True
+    assert "dark_store" in shoe_local and "renewed_channel" not in shoe_local
+
+    # Electronics (SL-006 headphones, has local buyers) → Renewed, no dark store.
+    hp = seed.get_item("SL-006")
+    buyers, resale, refurb = _resale_pair(hp, "B")
+    hp_local = {p["path"]: p for p in vrs.build_paths(
+        hp, "B", resale, refurb, buyers, is_sealed_rto=False)}["local_p2p"]
+    assert vrs.quick_commerce_eligible("electronics") is False
+    assert hp_local["eligible"] and "renewed_channel" in hp_local and "dark_store" not in hp_local
+    # recovery is still the exact sum of the breakdown — no economics changed.
+    assert hp_local["recovery"] == sum(hp_local["breakdown"].values())
+
+
 if __name__ == "__main__":
     test_recovery_reconciles_every_path()
     test_sl001_hero_golden()
+    test_renewed_vs_quick_commerce_channel()
     print("VRS invariant OK: recovery == sum(breakdown) for every eligible path; "
-          "SL-001 hero golden +83 / -129 holds.")
+          "SL-001 hero golden +83 / -129 holds; electronics→Renewed, everyday→dark store.")

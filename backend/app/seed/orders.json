@@ -22,6 +22,7 @@
     {"order_id": "171-7781002-RH04", "asin": "B0KURTA01", "title": "Vastram Men's Cotton Kurta (Navy Blue)", "purchase_date": "2026-06-09", "price_paid": 899, "status": "delivered"},
     {"order_id": "171-5540198-RH05", "asin": "B0SHOE500", "title": "Aurelle Women's Running Shoes", "purchase_date": "2026-06-11", "price_paid": 500, "status": "delivered"},
     {"order_id": "171-3300011-RH06", "asin": "B0LINEN01", "title": "Vastram Linen Shirt", "category": "apparel", "purchase_date": "2026-03-04", "price_paid": 1199, "status": "delivered"},
-    {"order_id": "171-3300012-RH07", "asin": "B0STRIDE08", "title": "Stride Trail Sneakers", "category": "footwear", "purchase_date": "2026-02-15", "price_paid": 2499, "status": "delivered"}
+    {"order_id": "171-3300012-RH07", "asin": "B0STRIDE08", "title": "Stride Trail Sneakers", "category": "footwear", "purchase_date": "2026-02-15", "price_paid": 2499, "status": "delivered"},
+    {"order_id": "171-3320185-RH08", "asin": "B0HDPHN880", "title": "SonicWave ANC Over-Ear Headphones", "category": "electronics", "purchase_date": "2026-06-10", "price_paid": 4499, "status": "delivered"}
   ]
 }

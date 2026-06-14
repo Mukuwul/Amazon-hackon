@@ -64,6 +64,27 @@ export default function HealthCard({ item, card, listed, building, onList, onBac
             <WarrantyBar remaining={w.remaining_months} total={w.total_months} />
           </div>
 
+          {/* usage certification (MT14) — quantified device health for electronics,
+              the trust hook behind Amazon Renewed routing. Renders only when present. */}
+          {card.usage_cert && (
+            <div className="mx-3 mb-3 rounded-xl bg-az-navy/[0.04] ring-1 ring-sl-line p-3.5">
+              <div className="flex items-center gap-3">
+                <BatteryIcon />
+                <div className="flex-1 min-w-0">
+                  <p className="font-700 text-[13.5px] text-sl-ink">
+                    {card.usage_cert.metric} · {card.usage_cert.value}
+                  </p>
+                  <p className="text-[12px] text-sl-muted mt-0.5">
+                    {card.usage_cert.detail} · verified via {card.usage_cert.source}
+                  </p>
+                </div>
+                <span className="rounded-full bg-az-navy text-white text-[10px] font-800 px-2.5 py-1 tracking-wide shrink-0">
+                  CERTIFIED
+                </span>
+              </div>
+            </div>
+          )}
+
           {/* provenance */}
           <div className="px-3 pb-1 divide-y divide-sl-line">
             <Fact label="First sold" value={fmtDate(prov.purchase_date)} />
@@ -200,6 +221,16 @@ function Sparkline({ points }) {
       />
       <circle cx={x(points[0].week)} cy={y(points[0].price)} r="2" fill="var(--color-sl-green-deep)" vectorEffect="non-scaling-stroke" />
       <style>{`@keyframes drawline{to{stroke-dashoffset:0}}`}</style>
+    </svg>
+  );
+}
+
+function BatteryIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="w-9 h-9 text-az-navy shrink-0" fill="none">
+      <rect x="3" y="8" width="15" height="8" rx="1.5" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M20 11v2" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <rect x="5" y="10" width="8" height="4" rx="0.5" fill="currentColor" />
     </svg>
   );
 }

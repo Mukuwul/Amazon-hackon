@@ -70,11 +70,12 @@ Body: `{"item_id": "SL-001"}` (requires a prior grade; `409 {"detail": "grade re
     {"path": "rto_relist", "recovery": 0, "eligible": false, "winner": false, "note": "not an RTO item"}
   ],
   "decision": "local_p2p",
+  "quick_commerce_eligible": true,
   "co2_saved_kg": 2.1,
   "km_saved": 597
 }
 ```
-Side effect: appends `ROUTED` event. Recovery figures scale with grade (B target ≈ local +₹279 vs warehouse +₹66); local_p2p wins at every grade for this item. Ineligible paths return `recovery: 0`, `eligible: false`, an empty `breakdown` omitted, and a `note`. *(MT8)* When `local_p2p` is eligible, its path object carries `dark_store: {id, name, distance_km}` — the nearest Amazon Now MFC from `seed/dark_stores.json` (nearest-distance), so the UI can name the open-box node instead of a generic "local hop."
+Side effect: appends `ROUTED` event. Recovery figures scale with grade (B target ≈ local +₹279 vs warehouse +₹66); local_p2p wins at every grade for this item. Ineligible paths return `recovery: 0`, `eligible: false`, an empty `breakdown` omitted, and a `note`. *(MT8)* When `local_p2p` is eligible, its path object carries `dark_store: {id, name, distance_km}` — the nearest Amazon Now MFC from `seed/dark_stores.json` (nearest-distance), so the UI can name the open-box node instead of a generic "local hop." *(MT14)* The route carries a top-level `quick_commerce_eligible` bool: everyday goods (footwear/apparel/home/bags/books) list open-box at the Amazon Now dark store, but **electronics** are `false` — their eligible `local_p2p` path instead carries `renewed_channel: {name: "Amazon Renewed", tier: "certified", note}` (no `dark_store`), routing to the certified-refurbished channel. The economics are unchanged (recovery still sums from the same breakdown) — only the named destination differs. *(MT14, server-side fix)* When the winner is `local_p2p`, `/route` also creates the public Flash-deals listing atomically (via `resell.list_from_route`, idempotent) — a graded return appears on the board reliably, no separate `POST /resell/from-route` round-trip needed.
 
 ## GET /cascade/{item_id}  *(MT8 — derived value cascade)*
 The time-decay tier waterfall, **derived** from the VRS engine — NOT a fixed timer. Re-runs the argmax week-by-week as the −5%/wk decay erodes the resale price; emits a new tier whenever the winning channel changes; terminates at `donate` (CSR) once no monetary path clears the donate credit. Requires a prior grade (`409 {"detail": "grade required"}` otherwise). Pure-Python deterministic — **no AI call, so no cache and nothing that can fail live**. Backed by `cascade.py` (reuses `vrs.py` + `pricing.py`, no new economics).
@@ -93,7 +94,8 @@ Each `channel` is the live VRS winner at that week's decayed price; `net` equals
 
 ## GET /health-card/{item_id}
 Requires grade + route (`409` otherwise).
-→ `200 {"item_id", "title", "grade", "defects": [...], "justification", "provenance": {"purchase_date", "price_paid", "invoice_verified": true, "single_owner": true}, "warranty": {"total_months": 12, "remaining_months": 8, "transferable": true}, "suggested_price": 310, "price_decay": [{"week": 0, "price": 310}, {"week": 1, "price": 295}, ...], "photos": [...]}`
+→ `200 {"item_id", "title", "grade", "defects": [...], "justification", "provenance": {"purchase_date", "price_paid", "invoice_verified": true, "single_owner": true}, "warranty": {"total_months": 12, "remaining_months": 8, "transferable": true}, "suggested_price": 310, "price_decay": [{"week": 0, "price": 310}, {"week": 1, "price": 295}, ...], "usage_cert": null, "photos": [...]}`
+*(MT14)* `usage_cert` is a quantified device-health block for electronics (the trust hook behind Renewed routing): `{"metric": "Battery health", "value": "89%", "detail": "142 of ~500 charge cycles", "source": "device telemetry"}` — seeded on electronics catalog items (`items.json`), `null` for everything else.
 Side effect: appends `LISTED` event.
 
 ## POST /seal-check

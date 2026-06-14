@@ -9,7 +9,7 @@ import { inr, gradeColor, gradeLabel } from "../lib/format";
 // see the unit's current-condition photos and the AI grade + confidence that came
 // from those photos. Works for neighbour resells AND verified warehouse returns
 // (NEW 9). Photos are built from the listing's item_id (the graded unit's photos).
-export default function FlashDealDetail({ listing: l, persona, onToast, onBack }) {
+export default function FlashDealDetail({ listing: l, persona, onToast, onInterested, onBack }) {
   const [interested, setInterested] = useState(false);
   const [busy, setBusy] = useState(false);
   const own = persona && l.owner === persona;
@@ -24,8 +24,18 @@ export default function FlashDealDetail({ listing: l, persona, onToast, onBack }
   async function express() {
     setBusy(true);
     try {
-      await api.addInterest(l.listing_id);
+      const updated = await api.addInterest(l.listing_id);
+      // The interest we just added is the last one on the listing — track it so the
+      // buyer gets an "Order confirmed" popup when the seller accepts it (MT14 fix-1).
+      const mine = updated?.interests?.[updated.interests.length - 1];
       setInterested(true);
+      onInterested?.({
+        listing_id: l.listing_id,
+        interest_id: mine?.interest_id,
+        title: l.title,
+        thumb: l.thumb,
+        ask_price: l.ask_price,
+      });
       onToast?.({
         title: "Interest sent",
         message: `The seller of ${l.title} has been notified. They’ll confirm the local handoff.`,

@@ -71,11 +71,16 @@ function DestinationHero({ route, winner, warehouse, swing }) {
   const localKm = winner.distance_km;
   // Warehouse distance is API-derivable: km_saved = WAREHOUSE_KM − local leg.
   const warehouseKm = localKm != null && route.km_saved ? route.km_saved + localKm : null;
+  // MT14 — electronics route through Amazon Renewed (certified), not quick commerce.
+  const renewed = winner.renewed_channel;
+  const glyph = renewed ? "♻️" : m.glyph;
   const dest = winner.dark_store
     ? `Amazon Now · ${winner.dark_store.name}`
-    : winner.path === "local_p2p"
-      ? (localKm != null ? `A local buyer · ${localKm} km away` : "A local buyer nearby")
-      : m.label;
+    : renewed
+      ? `${renewed.name} · ${renewed.tier}`
+      : winner.path === "local_p2p"
+        ? (localKm != null ? `A local buyer · ${localKm} km away` : "A local buyer nearby")
+        : m.label;
 
   return (
     <div className="relative rounded-2xl bg-white shadow-card ring-1 ring-sl-line p-4 anim-winner overflow-hidden">
@@ -86,7 +91,7 @@ function DestinationHero({ route, winner, warehouse, swing }) {
       {/* where it goes */}
       <p className="text-[10px] font-800 uppercase tracking-wider text-sl-muted">Best recovery path · goes to</p>
       <div className="flex items-center gap-2 mt-1">
-        <span className="text-2xl">{m.glyph}</span>
+        <span className="text-2xl">{glyph}</span>
         <span className="font-display font-800 text-[18px] text-sl-ink leading-tight">{dest}</span>
       </div>
 
@@ -100,7 +105,7 @@ function DestinationHero({ route, winner, warehouse, swing }) {
       {warehouse && (
         <div className="mt-4 space-y-2.5">
           <RouteLane tone="bad" label="Old way · warehouse" km={warehouseKm} value={warehouse.recovery} strike />
-          <RouteLane tone="good" label={`Second Life · ${m.label}`} km={localKm} value={winner.recovery} />
+          <RouteLane tone="good" label={`Second Life · ${renewed ? renewed.name : m.label}`} km={localKm} value={winner.recovery} />
         </div>
       )}
 
@@ -122,8 +127,17 @@ function DestinationHero({ route, winner, warehouse, swing }) {
         <div className="mt-2.5 inline-flex items-center gap-2 rounded-lg bg-sl-mint/60 ring-1 ring-sl-green/30 px-2.5 py-1.5">
           <span className="text-[14px]">🏪</span>
           <span className="text-[12px] leading-tight text-sl-green-deep">
-            Lists open-box at <span className="font-700">{winner.dark_store.name}</span>
+            Moved to quick commerce — open-box at <span className="font-700">{winner.dark_store.name}</span>
             <span className="text-sl-green-deep/70"> · {winner.dark_store.distance_km} km</span>
+          </span>
+        </div>
+      )}
+      {renewed && (
+        <div className="mt-2.5 inline-flex items-center gap-2 rounded-lg bg-sl-mint/60 ring-1 ring-sl-green/30 px-2.5 py-1.5">
+          <span className="text-[14px]">♻️</span>
+          <span className="text-[12px] leading-tight text-sl-green-deep">
+            Electronics route to <span className="font-700">{renewed.name}</span>
+            <span className="text-sl-green-deep/70"> · {renewed.note}</span>
           </span>
         </div>
       )}

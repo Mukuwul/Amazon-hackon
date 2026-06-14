@@ -63,6 +63,10 @@ export default function App() {
   const [secondLife, setSecondLife] = useState(null); // MT11 buy-side recovered units for the PDP
   const [returns, setReturns] = useState(null); // MT10 Ops returns desk (server /returns)
   const [localReturns, setLocalReturns] = useState([]); // buyer-initiated this session (instance-proof)
+  // MT14 fix-1 — interests this buyer expressed on Flash deals, watched so that when
+  // the reseller accepts one the buyer gets an "Order confirmed" popup + notification.
+  const [myInterests, setMyInterests] = useState([]); // {listing_id, interest_id, title, thumb, ask_price}
+  const [confirmedOrders, setConfirmedOrders] = useState([]); // buyer-side order-confirmed notes
 
   // Guest identity — unique per browser, set when a role is picked on the landing.
   // Used for resell ownership + return attribution; storefront reads still use SAMPLE.
@@ -112,6 +116,60 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("sl_force_cached", forceCached ? "1" : "0");
   }, [forceCached]);
+
+  // MT14 fix-1 — buyer-side order watcher. While this buyer has open interests on the
+  // Flash-deals board, poll the listings; the moment the reseller accepts one of them
+  // (interest → accepted, listing → sold) fire an "Order confirmed" popup + a sticky
+  // notification, and stop watching that one. Cross-tab/instance caveat is the same as
+  // the rest of the resell board (one warm instance), but it's rock-solid locally.
+  useEffect(() => {
+    if (!myInterests.length) return;
+    let alive = true;
+    async function tick() {
+      try {
+        const { listings } = await api.listings();
+        if (!alive) return;
+        const byId = Object.fromEntries(listings.map((l) => [l.listing_id, l]));
+        const stillOpen = [];
+        for (const t of myInterests) {
+          const l = byId[t.listing_id];
+          const mineInt = l?.interests?.find((i) => i.interest_id === t.interest_id);
+          if (l && l.status === "sold" && mineInt?.status === "accepted") {
+            const note = {
+              id: `ord-${t.listing_id}-${t.interest_id}`,
+              kind: "order",
+              title: "Order confirmed",
+              body: `${t.title} · ${inr(t.ask_price)} — the seller accepted your offer. Local pickup is being arranged.`,
+              ts: "now",
+            };
+            setConfirmedOrders((prev) => (prev.some((n) => n.id === note.id) ? prev : [note, ...prev]));
+            setToast({
+              title: "Order confirmed 🎉",
+              message: `${t.title} is yours — the seller accepted your offer. We're arranging local pickup near you.`,
+            });
+          } else if (mineInt?.status === "declined" || mineInt?.status === "passed") {
+            // not chosen → drop quietly, no confirmation
+          } else {
+            stillOpen.push(t);
+          }
+        }
+        if (stillOpen.length !== myInterests.length) setMyInterests(stillOpen);
+      } catch { /* keep watching */ }
+    }
+    tick();
+    const iv = setInterval(tick, 4000);
+    return () => { alive = false; clearInterval(iv); };
+  }, [myInterests]);
+
+  // Track an interest this buyer just expressed so the watcher above can confirm it.
+  function trackInterest(entry) {
+    if (!entry?.interest_id) return;
+    setMyInterests((prev) =>
+      prev.some((p) => p.listing_id === entry.listing_id && p.interest_id === entry.interest_id)
+        ? prev
+        : [...prev, entry]
+    );
+  }
 
   // load inbox + cart count + warm the lambda
   useEffect(() => {
@@ -241,11 +299,9 @@ export default function App() {
       // Derived terminal-state cascade (MT8) — non-blocking so the route screen
       // never waits on it; the strip fills in when it lands.
       api.cascadeSafe(item.item_id, forceCached).then(setCascade).catch(() => {});
-      // NEW 9 — a graded return whose winner is local_p2p also lists on the public
-      // Flash-deals board (best-effort, non-blocking). Ops/returns lane only.
-      if (origin === "ops" && r.decision === "local_p2p") {
-        api.listFromRoute(item.item_id).catch(() => {});
-      }
+      // MT14 fix-4 — listing a graded local_p2p return on the Flash-deals board now
+      // happens SERVER-SIDE inside /route (atomic with the ROUTED event), so the old
+      // fragile frontend POST is gone (it could land on a different warm instance).
     } catch (e) {
       setErr({ message: `Routing failed (${e.detail || e.message}).`, retry: runRoute });
     } finally {
@@ -674,6 +730,7 @@ export default function App() {
             orders={buyerOrders}
             ordersLoading={ordersLoading}
             notifications={notifications}
+            extraNotifications={confirmedOrders}
             notifLoading={notifLoading}
             busy={busy}
             tab={buyerTab}
@@ -750,6 +807,7 @@ export default function App() {
             listing={flashListing}
             persona={me}
             onToast={setToast}
+            onInterested={trackInterest}
             onBack={() => { setBuyerTab("flash"); setScreen("buyer"); }}
           />
         )}

@@ -60,6 +60,9 @@ def order_history(persona: str) -> list[dict] | None:
             **o,
             **_window(o["purchase_date"]),
             "item_id": item["item_id"] if item else None,
-            "resellable": bool(seed.dormant_units(o["asin"])),
+            # Every order is resellable — listing it on Second Life creates the
+            # flash deal and demand follows (no local-demand gate). Needs a catalog
+            # item_id so the resell flow can grade/price it.
+            "resellable": item is not None,
         })
     return out

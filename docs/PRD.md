@@ -89,6 +89,12 @@ React (phone-frame, inside-the-order-flow UI) on Vercel → FastAPI on AWS Lambd
 - **6–12 months:** **resale value at checkout** ("Buy at ₹2,400 · we'll rebuy at ~₹1,500 within 12 months → effective cost ₹900") — circular economy as a purchase feature that *increases* new-sale conversion; Grow Cycle subscriptions for outgrowable categories; micro-liquidation bidding for kiranas; **brand layer** (right of first refusal on their own returns, trade-in boosts); dynamic return windows ("60-day returns on this item because we can resell it in your city in 6 hours"); Green Ledger ESG/EPR revenue.
 - **Multi-segment expansion:** fashion → electronics → furniture → B2B liquidation → textbooks/edu → healthcare equipment. Geography-agnostic by design.
 
+**Trust & verification roadmap** (the closing-loop layer beyond the shipped engine):
+- **Buyer-verified grading (§3.6):** the buyer of a second-life unit confirms "condition matches Grade X" for a small credit — every sale becomes a free human audit of the AI grade, so it's the only grading model checked by a human on every transaction.
+- **Review-informed inspection checklists (§18.2):** auto-build each SKU's inspection checklist from its own customer reviews (one extra LLM call).
+- **Agent-as-grader / Agent Flip (§3.3, §4.3):** the delivery agent grades at the doorstep on pickup; Agent Flip lists the graded unit straight onto that route's flash deals.
+- **Usage-data certification (§5.3):** the Health Card quantifies verified device usage (battery cycle count, sensors verified) for electronics — the deep version of the battery-cycle line now shipped on the Renewed-routed Health Card.
+
 ## 8. "Doesn't Amazon already do this?" (pre-empted)
 
 - **Amazon Renewed / Warehouse Deals:** proves demand exists — but warehouse-bound, human-graded, premium-skewed, and a separate storefront nobody visits. We fix the supply economics it structurally can't reach, and surface it on the normal PDP.

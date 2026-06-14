@@ -55,5 +55,8 @@ def health_card(item_id: str) -> dict:
         },
         "suggested_price": suggested,
         "price_decay": pricing.price_decay(suggested),
+        # MT14 — quantified usage certification (battery health/cycles) for
+        # electronics; the trust hook behind Renewed-channel routing. None otherwise.
+        "usage_cert": item.get("usage_cert"),
         "photos": _photo_urls(item_id),
     }

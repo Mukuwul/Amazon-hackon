@@ -39,6 +39,19 @@ LOCAL_DEFAULT_KM = 5
 LOCAL_RADIUS_KM = 15          # eligibility radius for a local match
 LOCAL_NOTE_KM = 4             # "buyers within N km" headline
 
+# MT14: electronics route through Amazon Renewed (certified), not the Amazon Now
+# quick-commerce dark store. Quick-commerce stays for fast-moving everyday goods
+# (shoe, kurta, bottle…); a battery-cycle line on the Health Card is the trust hook.
+RENEWED_CATEGORIES = {"electronics"}
+RENEWED_CHANNEL = {"name": "Amazon Renewed", "tier": "certified",
+                   "note": "Certified refurbished — battery & sensors verified"}
+
+
+def quick_commerce_eligible(category: str) -> bool:
+    """Everyday goods list open-box at an Amazon Now dark store; electronics route
+    through Amazon Renewed (certified) instead (MT14 fix-3)."""
+    return category not in RENEWED_CATEGORIES
+
 
 class NeedsGrade(Exception):
     """/route called before the item was graded."""
@@ -102,11 +115,16 @@ def build_paths(item: dict, grade: str, resale: int, refurb_resale: int,
               else "no local buyers matched"),
         distance_km=local_dist,
     )
-    # MT8: name the hyperlocal open-box node (nearest Amazon Now MFC).
+    # Name where the local hop physically lands. MT8: a nearest Amazon Now MFC
+    # (open-box quick commerce). MT14: electronics route through Amazon Renewed
+    # (certified) instead — gated by category, no economics change.
     if local_eligible:
-        ds = seed.nearest_dark_store(item)
-        if ds is not None:
-            local["dark_store"] = ds
+        if category in RENEWED_CATEGORIES:
+            local["renewed_channel"] = RENEWED_CHANNEL
+        else:
+            ds = seed.nearest_dark_store(item)
+            if ds is not None:
+                local["dark_store"] = ds
     paths.append(local)
 
     # warehouse_relist — the default reverse-logistics route.
@@ -192,6 +210,7 @@ def route_item(item_id: str) -> dict:
         "resale_value": resale,
         "paths": paths,
         "decision": winner["path"],
+        "quick_commerce_eligible": quick_commerce_eligible(category),
         "co2_saved_kg": co2_saved,
         "km_saved": km_saved,
     }
@@ -200,4 +219,16 @@ def route_item(item_id: str) -> dict:
         "warehouse_recovery": wh_recovery, "resale_value": resale,
         "co2_saved_kg": co2_saved,
     })
+
+    # MT14 fix-4 — a graded RETURN that wins local_p2p also surfaces on the public
+    # Flash-deals board. Do it HERE, server-side and atomic with the ROUTED event
+    # on the same warm instance — the old frontend POST (/resell/from-route) could
+    # land on a different instance with no ROUTED event and silently no-op. Imported
+    # locally + best-effort so a listing failure can never break the routing spine.
+    if winner["path"] == "local_p2p":
+        try:
+            from . import resell
+            resell.list_from_route(item_id)
+        except Exception:  # noqa: BLE001 — the board is a side-channel, never the spine
+            pass
     return result

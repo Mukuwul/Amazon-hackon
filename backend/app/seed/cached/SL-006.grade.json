@@ -1,0 +1,36 @@
+{
+  "same_unit": {
+    "verified": true,
+    "confidence": 0.95
+  },
+  "catalog_matches_day0": {
+    "verified": true,
+    "confidence": 0.96
+  },
+  "grade": "B",
+  "defects": [
+    {
+      "area": "left ear cushion",
+      "description": "Light surface scuffing and minor compression of the foam from normal wear; cleans up and structurally intact",
+      "severity": "minor"
+    }
+  ],
+  "completeness": [
+    {
+      "item": "original box",
+      "present": true
+    },
+    {
+      "item": "charger or power adapter",
+      "present": true
+    },
+    {
+      "item": "user manual",
+      "present": false
+    }
+  ],
+  "usage_detected": true,
+  "confidence": 0.91,
+  "justification": "Same unit as day-0 with only light cosmetic wear on the left ear cushion; audio hardware and headband intact, fully functional — a clean Grade B.",
+  "model": "gemini-2.5-flash"
+}

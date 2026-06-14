@@ -40,7 +40,8 @@
         "invoice_id": "INV-SL002-1102"
       },
       "warranty_months": 24,
-      "location": {"lat": 12.9352, "lon": 77.6245, "area": "Koramangala"}
+      "location": {"lat": 12.9352, "lon": 77.6245, "area": "Koramangala"},
+      "usage_cert": {"metric": "Battery health", "value": "94%", "detail": "318 of ~1000 charge cycles", "source": "device telemetry"}
     },
     {
       "item_id": "SL-003",
@@ -124,7 +125,8 @@
         "invoice_id": "INV-SL006-0715"
       },
       "warranty_months": 12,
-      "location": {"lat": 12.9698, "lon": 77.7499, "area": "Whitefield"}
+      "location": {"lat": 12.9698, "lon": 77.7499, "area": "Whitefield"},
+      "usage_cert": {"metric": "Battery health", "value": "89%", "detail": "142 of ~500 charge cycles", "source": "device telemetry"}
     },
     {
       "item_id": "SL-007",
