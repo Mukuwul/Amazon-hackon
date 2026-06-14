@@ -75,7 +75,7 @@ function DestinationHero({ route, winner, warehouse, swing }) {
   const renewed = winner.renewed_channel;
   const glyph = renewed ? "♻️" : m.glyph;
   const dest = winner.dark_store
-    ? `Amazon Now · ${winner.dark_store.name}`
+    ? `${winner.dark_store.name}`
     : renewed
       ? `${renewed.name} · ${renewed.tier}`
       : winner.path === "local_p2p"

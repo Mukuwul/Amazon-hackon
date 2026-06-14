@@ -32,7 +32,7 @@ export default function Home({ onOps, onBuyer, onSeller, guest, onPickRole, onNe
           Every product finds its next&nbsp;best owner.
         </h1>
         <p className="mt-5 text-sl-muted text-[15px] leading-relaxed text-pretty">
-          An intelligent layer inside the Amazon returns flow. AI delta-grades each item against its
+          Second life where product fate is decided on second touch. An intelligent layer inside the Amazon returns flow. AI delta-grades each item against its
           own day-0 photos, then routes it to the highest-rupee second life, before it ever reaches
           a warehouse.
         </p>
