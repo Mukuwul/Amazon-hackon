@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 const nf = new Intl.NumberFormat("en-IN");
 
@@ -34,7 +34,6 @@ export const gradeLabel = (g) => GRADE_LABEL[g] || "Graded";
 // requestAnimationFrame count-up for the money moment
 export function useCountUp(target, duration = 900) {
   const [val, setVal] = useState(0);
-  const target0 = useRef(target);
   useEffect(() => {
     let raf;
     let start = null;

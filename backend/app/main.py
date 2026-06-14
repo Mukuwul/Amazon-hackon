@@ -16,11 +16,14 @@ app = FastAPI(title="Amazon Second Life API")
 # Handled HERE, in the app (works for both local uvicorn AND Lambda).
 # IMPORTANT: keep CORS DISABLED on the Lambda Function URL, or Lambda will
 # answer the OPTIONS preflight itself and bypass this config.
-# Origins are read from an env var (comma-separated) so you can add one
-# without a code change. Default covers local dev + your deployed frontend.
+# Origins are read from an env var (comma-separated) so you can add one without a
+# code change. Defaults to local dev + the deployed frontend so a missing/blanked
+# env var doesn't silently break every browser call (audit finding 8) — set
+# ALLOWED_ORIGINS to override/extend.
+DEFAULT_ORIGINS = "http://localhost:5173,https://amazon-hackon.vercel.app"
 ALLOWED_ORIGINS = [
     o.strip()
-    for o in os.getenv("ALLOWED_ORIGINS", "").split(",")
+    for o in os.getenv("ALLOWED_ORIGINS", DEFAULT_ORIGINS).split(",")
     if o.strip()
 ]
 
@@ -49,8 +52,16 @@ def health():
     return {"status": "ok"}
 
 
+# Legacy boilerplate chat endpoint. Disabled by default (audit finding 9): it's an
+# unauthenticated public LLM call — a cost/abuse surface the product doesn't use.
+# Set ENABLE_CHAT=1 to turn it back on; otherwise it 404s like any unknown route.
+CHAT_ENABLED = os.getenv("ENABLE_CHAT", "").strip().lower() in ("1", "true", "yes")
+
+
 @app.post("/chat", response_model=ChatOut)
 def chat(body: ChatIn):
+    if not CHAT_ENABLED:
+        raise HTTPException(status_code=404, detail="not found")
     return ChatOut(reply=ask_llm(body.message))
 
 
@@ -191,11 +202,19 @@ def get_metrics():
     return metrics.metrics()
 
 
+# Reset is token-protected (audit finding 14): it clears the live passport working
+# set, so an accidental/hostile hit mid-demo would reset the metrics counter. It's
+# only enabled when METRICS_RESET_TOKEN is set; otherwise every call 401s, so it
+# can't be triggered by accident. Presenter: set the env var, call ?token=<value>.
+RESET_TOKEN = os.getenv("METRICS_RESET_TOKEN", "")
+
+
 @app.post("/metrics/reset")
-def reset_metrics():
-    """Clear live passport events back to the seeded baseline so the impact
-    counter is stable across rehearsal runs (the cumulative metric otherwise
-    drifts up each time an item is routed). Presenter tool — not wired to any UI."""
+def reset_metrics(token: str | None = None):
+    """Clear live passport events back to the seeded baseline so the impact counter
+    is stable across rehearsal runs. Token-gated presenter tool — not wired to any UI."""
+    if not RESET_TOKEN or token != RESET_TOKEN:
+        raise HTTPException(status_code=401, detail="unauthorized")
     passport.reset()
     return metrics.metrics()
 

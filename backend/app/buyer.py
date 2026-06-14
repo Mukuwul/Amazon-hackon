@@ -1,29 +1,38 @@
 """Buyer storefront — cart, notifications, and a demo UPI checkout.
 
-Backs the MT9 buyer hub (Rahul). The cart is a per-Lambda-instance overlay seeded
-from buyer.json — it mirrors the passport's per-instance pattern, so a cold start
-resets to the seed (fine for the demo). Notifications are read-only seed. Checkout
-returns an API-shaped UPI collect request (pending → success on confirm); there's no
-real payment. Pure data, no LLM.
+Backs the MT9 buyer hub (Rahul). The cart is persisted to DynamoDB (best-effort,
+via store.py) so it survives a cold start / instance swap (audit finding 5); when
+the table is unset it's a per-instance overlay seeded from buyer.json, exactly as
+before. Notifications are read-only seed. Checkout returns an API-shaped UPI collect
+request (pending → success on confirm); there's no real payment. Pure data, no LLM.
 """
 from __future__ import annotations
 
 import copy
 import random
 
-from . import lifestage, seed
+from . import lifestage, seed, store
 
-# persona -> mutable cart lines, lazily seeded from buyer.json on first read.
+# persona -> mutable cart lines, lazily loaded (persisted cart → seed) on first read.
 _CARTS: dict[str, list[dict]] = {}
+
+
+def _save_cart(persona: str, lines: list[dict]) -> None:
+    store.put(f"CART#{persona}", "cart", {"lines": lines})  # best-effort, no-ops if unset
 
 
 def _cart_lines(persona: str) -> list[dict] | None:
     persona = persona.lower()
     if persona not in _CARTS:
-        data = seed.buyer_data(persona)
-        if data is None:
-            return None
-        _CARTS[persona] = copy.deepcopy(data.get("cart", []))
+        # Prefer a cart persisted by any instance; else seed from buyer.json.
+        persisted = store.get(f"CART#{persona}", "cart")
+        if persisted is not None:
+            _CARTS[persona] = persisted.get("lines", [])
+        else:
+            data = seed.buyer_data(persona)
+            if data is None:
+                return None
+            _CARTS[persona] = copy.deepcopy(data.get("cart", []))
     return _CARTS[persona]
 
 
@@ -54,6 +63,7 @@ def add_to_cart(persona: str, asin: str, size: str | None = None, qty: int = 1) 
     for l in lines:
         if l["asin"] == asin and l.get("size") == size:
             l["qty"] = l.get("qty", 1) + qty
+            _save_cart(persona.lower(), lines)
             return _shape(persona.lower(), lines)
     lines.append({
         "asin": asin,
@@ -65,6 +75,7 @@ def add_to_cart(persona: str, asin: str, size: str | None = None, qty: int = 1) 
         "price": item["mrp"],
         "thumb": item.get("thumb"),
     })
+    _save_cart(persona.lower(), lines)
     return _shape(persona.lower(), lines)
 
 
@@ -113,6 +124,7 @@ def checkout(persona: str, confirm: bool = False) -> dict | None:
     order_id = "171-" + "".join(random.choices("0123456789", k=7)) + "-SL"
     if confirm:
         _CARTS[persona] = []  # order placed → empty the cart
+        _save_cart(persona, [])
         return {"persona": persona, "order_id": order_id, "amount": amount,
                 "upi_vpa": data.get("upi_vpa", f"{persona}@upi"), "status": "success"}
     return {"persona": persona, "order_id": order_id, "amount": amount,

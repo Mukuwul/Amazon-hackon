@@ -7,7 +7,7 @@ been graded and routed.
 """
 from __future__ import annotations
 
-from . import passport, pricing, seed
+from . import passport, pricing, seed, uploads
 
 
 class NeedsGradeAndRoute(Exception):
@@ -15,6 +15,12 @@ class NeedsGradeAndRoute(Exception):
 
 
 def _photo_urls(item_id: str) -> list[str]:
+    # Prefer the photos the agent actually uploaded at grading (finding 6) so the
+    # "certified condition" card shows the real evidence; fall back to the seeded
+    # day-0/current photos when there was no upload (e.g. the cached demo path).
+    uploaded = uploads.recent(item_id)
+    if uploaded:
+        return uploaded
     imgs = seed.item_images(item_id)
     return [f"/items/{item_id}/{p.name}" for p in imgs["day0"] + imgs["current"]]
 

@@ -188,6 +188,8 @@ export default function App() {
     })();
     refreshMetrics();
     api.cart(SAMPLE).then(setCart).catch(() => {});
+    // Mount-only bootstrap; reloadInbox is a stable retry handler, intentionally not a dep.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function refreshMetrics() {
@@ -856,7 +858,7 @@ export default function App() {
       {/* radar ping — fires on every list/handoff beat */}
       {toast && <RadarToast title={toast.title} message={toast.message} onClose={() => setToast(null)} />}
 
-      {/* global error */}
+      {/* page-level error banner */}
       {err && (
         <div className="fixed inset-x-0 bottom-0 z-[60] px-4 pb-4">
           <div className="mx-auto max-w-md">

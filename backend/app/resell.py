@@ -6,16 +6,21 @@ radius reaches more local buyers (higher achievable price) but Amazon's delivery
 grows with distance, so NET can peak mid-range. Buyers tap "I'm interested" on a
 public board; the reseller polls the listing for the live feed (real cross-tab).
 
-Stores are in-memory per-Lambda-instance (cart/passport pattern): cross-tab works
-locally (one uvicorn process) and on a single warm Lambda. Reuses pricing.py +
-seed.buyers_for_asin — pure Python, no LLM, can't fail live.
+Listings + interests are persisted to DynamoDB (best-effort, via store.py) so the
+two-person resell beat works across Lambda instances (audit finding 5): a listing
+made on one instance, an interest tapped on another, and the reseller's accept all
+sync because every read hydrates from the table and every mutation writes through.
+A DynamoDB outage degrades to the old per-instance behaviour (still rock-solid on
+one warm instance / local uvicorn). Reuses pricing.py + seed.buyers_for_asin —
+the economics are pure Python, no LLM, can't fail live.
 """
 from __future__ import annotations
 
 import random
+import uuid
 from datetime import datetime, timezone
 
-from . import passport, pricing, seed
+from . import passport, pricing, seed, store
 
 RANGE_TIERS_KM = [3, 7, 15]
 DELIVERY_BASE = 25      # ₹ flat
@@ -95,17 +100,35 @@ def _store() -> dict[str, dict]:
     return _LISTINGS
 
 
+def _hydrate() -> None:
+    """Merge listings persisted by any instance into the local store, DynamoDB
+    winning (it carries the latest interests / sold status). The seeded starters
+    are local-only. Best-effort — no-ops without DynamoDB."""
+    if not store.enabled():
+        return
+    local = _store()
+    for row in store.query("LISTING"):
+        listing = row.get("data") or {}
+        lid = listing.get("listing_id")
+        if lid:
+            local[lid] = listing
+
+
+def _save(listing: dict) -> None:
+    """Write a listing through to DynamoDB (best-effort) for cross-instance sync."""
+    store.put("LISTING", listing["listing_id"], listing)
+
+
 def create_listing(item_id: str, persona: str, ask_price: int, range_km: int, *,
                    grade: str | None = None, confidence: float | None = None,
                    source: str = "resell") -> dict | None:
-    global _seq
     item = seed.get_item(item_id)
     if item is None:
         return None
-    store = _store()
-    _seq += 1
-    lid = f"RL-{_seq:03d}"
-    store[lid] = {
+    listings = _store()
+    # Random id so two instances minting concurrently can't collide on a shared key.
+    lid = f"RL-{uuid.uuid4().hex[:6].upper()}"
+    listings[lid] = {
         "listing_id": lid,
         "item_id": item_id,
         "asin": item["asin"],
@@ -128,7 +151,8 @@ def create_listing(item_id: str, persona: str, ask_price: int, range_km: int, *,
         "interests": [],
         "created_ts": datetime.now(timezone.utc).isoformat(),
     }
-    return store[lid]
+    _save(listings[lid])
+    return listings[lid]
 
 
 def list_from_route(item_id: str, owner: str = "Amazon · Returned") -> dict | None:
@@ -142,10 +166,11 @@ def list_from_route(item_id: str, owner: str = "Amazon · Returned") -> dict | N
     routed = passport.latest_event(item_id, "ROUTED")
     if routed is None or routed["data"].get("decision") != "local_p2p":
         return None
-    store = _store()
-    for l in store.values():
+    _hydrate()
+    listings = _store()
+    for l in listings.values():
         if l.get("source") == "return" and l.get("item_id") == item_id and l["status"] == "active":
-            return l  # already on the board
+            return l  # already on the board (idempotent across instances)
     graded = passport.latest_event(item_id, "GRADED")
     gdata = graded["data"] if graded else {}
     ask = routed["data"].get("resale_value") or item["mrp"]
@@ -155,15 +180,18 @@ def list_from_route(item_id: str, owner: str = "Amazon · Returned") -> dict | N
 
 
 def list_listings() -> dict:
+    _hydrate()
     return {"listings": list(reversed(list(_store().values())))}
 
 
 def get_listing(listing_id: str) -> dict | None:
+    _hydrate()
     return _store().get(listing_id)
 
 
 def add_interest(listing_id: str, buyer_name: str | None = None,
                  distance_km: float | None = None, offer: int | None = None) -> dict | None:
+    _hydrate()
     listing = _store().get(listing_id)
     if listing is None:
         return None
@@ -172,7 +200,8 @@ def add_interest(listing_id: str, buyer_name: str | None = None,
         buyer_name = buyer_name or name
         distance_km = distance_km if distance_km is not None else dist
     interest = {
-        "interest_id": f"IN-{len(listing['interests']) + 1:03d}",
+        # Random id so interests added on different instances can't collide.
+        "interest_id": f"IN-{uuid.uuid4().hex[:5].upper()}",
         "buyer_name": buyer_name,
         "distance_km": distance_km,
         "offer": offer if offer is not None else listing["ask_price"],
@@ -180,6 +209,7 @@ def add_interest(listing_id: str, buyer_name: str | None = None,
         "ts": datetime.now(timezone.utc).isoformat(),
     }
     listing["interests"].append(interest)
+    _save(listing)
     return listing
 
 
@@ -190,6 +220,7 @@ def _find_interest(listing: dict, interest_id: str) -> dict | None:
 def sell_to_interest(listing_id: str, interest_id: str) -> dict | None:
     """The reseller accepts one interested buyer → the listing is sold to them.
     The take-home (net) is the buyer's offer minus the delivery cut for this reach."""
+    _hydrate()
     listing = _store().get(listing_id)
     if listing is None:
         return None
@@ -204,11 +235,13 @@ def sell_to_interest(listing_id: str, interest_id: str) -> dict | None:
     listing["sold_to"] = interest
     listing["net_earned"] = interest["offer"] - listing["delivery_cut"]
     listing["sold_ts"] = datetime.now(timezone.utc).isoformat()
+    _save(listing)
     return listing
 
 
 def decline_interest(listing_id: str, interest_id: str) -> dict | None:
     """The reseller declines one interested buyer; the listing stays active for others."""
+    _hydrate()
     listing = _store().get(listing_id)
     if listing is None:
         return None
@@ -216,4 +249,5 @@ def decline_interest(listing_id: str, interest_id: str) -> dict | None:
     if interest is None:
         return None
     interest["status"] = "declined"
+    _save(listing)
     return listing

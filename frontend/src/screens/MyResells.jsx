@@ -22,9 +22,14 @@ export default function MyResells({ persona, onToast }) {
 
   useEffect(() => {
     pollRef.current = true;
-    refresh();
-    const t = setInterval(() => { if (pollRef.current) refresh(); }, 3000);
-    return () => { pollRef.current = false; clearInterval(t); };
+    let alive = true;
+    // Poll inside an async tick so there's no synchronous setState in the effect body.
+    const tick = async () => { if (alive && pollRef.current) await refresh(); };
+    tick();
+    const t = setInterval(tick, 3000);
+    return () => { alive = false; pollRef.current = false; clearInterval(t); };
+    // refresh is a stable closure over persona; re-running per render would reset the poll.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [persona]);
 
   async function act(listing, interest, action) {

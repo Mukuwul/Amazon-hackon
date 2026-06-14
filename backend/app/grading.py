@@ -9,15 +9,24 @@ import base64
 import binascii
 import json
 import logging
+import os
 import time
 from typing import Literal
 
 from pydantic import BaseModel, Field, ValidationError
 
-from . import passport, seed
+from . import passport, seed, uploads
 from .llm import PROVIDER_MODEL, ask_llm_images
 
 log = logging.getLogger("grading")
+
+
+def force_cached_env() -> bool:  # noqa: D401 - shared by grading + inspection
+    """Global kill switch (audit finding 3). FORCE_CACHED=1 on the Lambda makes
+    every AI endpoint serve its committed cached response instantly — zero live
+    model calls — so a flaky network on stage can't hang the demo. Read per-call
+    so it can be flipped via Lambda env without a code change."""
+    return os.getenv("FORCE_CACHED", "").strip().lower() in ("1", "true", "yes")
 
 GRADING_SYSTEM = (
     "You are a meticulous returns inspector for an e-commerce marketplace. "
@@ -203,6 +212,16 @@ def grade_item(item_id: str, force_cached: bool = False,
 
     override = _decode_uploads(current_images) if current_images else None
 
+    # Remember the uploaded photos so the Health Card shows the real evidence (finding 6).
+    if current_images:
+        uploads.remember(item_id, [
+            s if s.strip().startswith("data:") else f"data:image/jpeg;base64,{s.strip()}"
+            for s in current_images
+        ])
+
+    # The env kill switch forces cache globally; the per-request flag is the UI toggle.
+    force_cached = force_cached or force_cached_env()
+
     t0 = time.monotonic()
     core = None
     source = model = ""
@@ -258,6 +277,16 @@ def grade_item(item_id: str, force_cached: bool = False,
     else:
         review_reason = None
 
+    # Honesty (audit finding 1): if the agent uploaded photos but we fell back to the
+    # cached reference grade (live AI down, or the kill switch is on), say so plainly —
+    # the cache did NOT analyse the upload. The UI shows this so the cached fallback can
+    # never be mistaken for live verification of the uploaded photos.
+    cached_upload_notice = (
+        "Live AI was unavailable — showing the reference grade on file. Your uploaded "
+        "photos were not analysed for this result."
+        if source == "cached" and current_images else None
+    )
+
     result = {
         "item_id": item_id,
         **core,
@@ -268,6 +297,7 @@ def grade_item(item_id: str, force_cached: bool = False,
         "source": source,
         "model": model,
         "graded_uploaded_photos": graded_uploaded,
+        "cached_upload_notice": cached_upload_notice,
         "latency_ms": int((time.monotonic() - t0) * 1000),
     }
     passport.append_event(item_id, "GRADED", {

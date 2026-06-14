@@ -192,7 +192,7 @@ export default function ItemIntro({ item, scanning, onScan, onBack }) {
         onClick={() => onScan(images.map((im) => im.b64), images.map((im) => im.preview))}
         disabled={!hasUpload}
         loading={scanning}
-        hint={scanning ? undefined : hasUpload ? "Nova-2 multimodal · grades your photos in ~2s" : "Upload a photo to enable grading"}
+        hint={scanning ? undefined : hasUpload ? "Multimodal vision AI · grades your photos in ~2s" : "Upload a photo to enable grading"}
       >
         {scanning ? "Scanning…" : hasUpload ? "Run AI grade on uploaded photos" : "Upload to grade"}
       </FooterAction>

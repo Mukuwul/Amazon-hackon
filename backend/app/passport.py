@@ -1,26 +1,30 @@
 """Product Passport: append-only event log per item.
 
 In-memory store seeded from items.json at import time; writes go through to
-DynamoDB only when DYNAMODB_TABLE_NAME is set (best-effort — a DynamoDB error
-never blocks the demo, see docs/db-setup.md). Cold-start loss of in-memory
-events is acceptable for a demo run.
+DynamoDB (best-effort, via store.py) when DYNAMODB_TABLE_NAME is set. A DynamoDB
+error never blocks the demo (see docs/db-setup.md).
+
+Cross-instance / cold-start integrity (audit finding 2): the spine reads the
+latest GRADED / ROUTED / SEAL_CHECKED event via latest_event() to decide whether
+to route or build a Health Card. On a cold start (or when a parallel Lambda
+instance graded the item), this instance's in-memory log has only the seeded
+baseline, so latest_event() reads back from DynamoDB on a miss — the grade→route
+→health-card chain survives an instance swap instead of 409-ing mid-demo.
 """
-import json
 import logging
-import os
 from datetime import datetime, timezone
 
-from . import seed
+from . import seed, store
 
 log = logging.getLogger("passport")
-
-DYNAMODB_TABLE_NAME = os.getenv("DYNAMODB_TABLE_NAME", "")
 
 _events: dict[str, list[dict]] = {}
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    # Microsecond resolution so two events on the same item in the same second get
+    # distinct DynamoDB sort keys (second-resolution keys would overwrite).
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 
 def _seed_baseline() -> None:
@@ -54,24 +58,36 @@ def reset() -> None:
 def append_event(item_id: str, event: str, data: dict) -> dict:
     record = {"ts": _now(), "event": event, "data": data}
     _events.setdefault(item_id, []).append(record)
-    if DYNAMODB_TABLE_NAME:
-        try:
-            import boto3
-            boto3.resource("dynamodb").Table(DYNAMODB_TABLE_NAME).put_item(
-                Item={"item_id": item_id, "ts": record["ts"], "event": event,
-                      "data": json.dumps(data)}
-            )
-        except Exception as e:
-            log.warning("DynamoDB write failed (%s) — in-memory store still has the event.", e)
+    # Write-through to DynamoDB (best-effort; no-ops when the table is unset).
+    store.put(item_id, record["ts"], {"event": event, "data": data})
     return record
 
 
 def get_events(item_id: str) -> list[dict]:
+    # In-memory only by design: /metrics + green-ledger count off this log and
+    # POST /metrics/reset clears it, so it stays per-instance and resettable.
     return _events.get(item_id, [])
 
 
+def _dynamo_events(item_id: str) -> list[dict]:
+    """The item's events read back from DynamoDB, oldest-first. [] when the table
+    is unset or unreachable (the demo then relies on the in-memory log)."""
+    rows = store.query(item_id)
+    out = [{"ts": r["sk"], "event": r["data"].get("event"), "data": r["data"].get("data", {})}
+           for r in rows if r.get("data", {}).get("event")]
+    out.sort(key=lambda r: r["ts"])
+    return out
+
+
 def latest_event(item_id: str, event: str) -> dict | None:
-    for record in reversed(get_events(item_id)):
+    # Fast path: the warm instance that produced the event has it in memory.
+    for record in reversed(_events.get(item_id, [])):
         if record["event"] == event:
             return record
+    # Miss → cold start or a parallel instance produced it. Read back from DynamoDB
+    # so the spine doesn't 409 between grade → route → health-card on an instance swap.
+    if store.enabled():
+        for record in reversed(_dynamo_events(item_id)):
+            if record["event"] == event:
+                return record
     return None

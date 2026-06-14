@@ -8,7 +8,7 @@ import { inr, gradeColor } from "../lib/format";
 // it; tapping a card opens its condition detail (photos + AI grade) before a buyer
 // expresses interest (MT12 NEW 12). Graded warehouse returns appear here too, with a
 // "Returned" badge (MT12 NEW 9). Self-fetches + polls so freshly-listed items appear.
-export default function FlashDeals({ persona, onOpen }) {
+export default function FlashDeals({ onOpen }) {
   const [listings, setListings] = useState(null);
 
   useEffect(() => {

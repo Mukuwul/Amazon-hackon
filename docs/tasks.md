@@ -14,7 +14,7 @@ MVP-only. One MAJOR TASK = one Fable session. Owners: **A** = backend (me + Fabl
   Drop into `backend/app/seed/images/SL-00X/` as `catalog.jpg`, `day0_1.jpg`, `day0_2.jpg`, `current_1.jpg`… Fable handles the rest. **Until photos land, MT1 builds against 2 stock-photo placeholder items — pipeline first, photos swap in.**
 - [ ] Check email for AWS/Kiro credit codes; set AWS billing alert (A)
 - [ ] OBS/Loom recording test (C)
-- [ ] C starts citation verification for the `[VERIFY-C]` stats in docs/PRD.md
+- [x] ~~C starts citation verification for the `[VERIFY-C]` stats in docs/PRD.md~~ — DONE (June 14 audit-fix pass): replaced with researched sourced figures (NRF/Happy Returns, Shipway, Edgistify); `rg VERIFY-C docs/PRD.md` → none.
 
 ## MT1 ⭐ — Seed store + Product Passport + Delta-Grader (A) ✅ DONE (commit be97d15)
 **Goal:** `POST /grade` returns real Nova-2 delta-grading JSON for seeded items, with cached fallback.

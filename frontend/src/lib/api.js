@@ -42,7 +42,10 @@ export const api = {
   // MT8 — derived terminal-state waterfall (pure-Python, no AI). Needs a prior grade.
   cascade: (id) => req(`/cascade/${id}`),
   healthCard: (id) => req(`/health-card/${id}`),
-  sealCheck: (id) => req("/seal-check", { method: "POST", body: { item_id: id } }),
+  // forceCached honours the LIVE/CACHED toggle so the RTO lane never calls live AI
+  // in cached mode (audit finding 4) — the API wrapper used to drop the flag.
+  sealCheck: (id, forceCached) =>
+    req("/seal-check", { method: "POST", body: { item_id: id, force_cached: !!forceCached } }),
   radar: (asin) => req(`/radar/${asin}`),
   priceCurve: (id) => req(`/price-curve/${id}`),
   diagnose: (asin) => req("/diagnose-listing", { method: "POST", body: { asin } }),

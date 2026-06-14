@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import TopBar from "../components/TopBar";
 import { FooterAction } from "../components/ui";
 import { inr } from "../lib/format";
@@ -12,12 +12,10 @@ export default function ResellPrice({ item, quote, range, busy, onRange, onList,
   const recIdx = Math.max(0, points.findIndex((p) => p.price === quote.recommended));
   const [idx, setIdx] = useState(recIdx === -1 ? points.length - 1 : recIdx);
 
-  // Keep the slider valid when the range (and therefore the curve) changes.
-  useEffect(() => {
-    setIdx((i) => Math.min(i, Math.max(0, points.length - 1)));
-  }, [points.length]);
-
-  const sel = points[idx] || { price: quote.best_price };
+  // Clamp during render so a shorter curve (after a range change) never reads past
+  // the end — no effect needed, so no synchronous setState-in-effect.
+  const safeIdx = Math.min(idx, Math.max(0, points.length - 1));
+  const sel = points[safeIdx] || { price: quote.best_price };
   const net = sel.price - quote.delivery_cut;
   const tiers = quote.range_tiers || [];
 
@@ -49,7 +47,7 @@ export default function ResellPrice({ item, quote, range, busy, onRange, onList,
       {/* price slider */}
       <div className="px-4 pt-5">
         <input
-          type="range" min={0} max={Math.max(0, points.length - 1)} step={1} value={idx}
+          type="range" min={0} max={Math.max(0, points.length - 1)} step={1} value={safeIdx}
           onChange={(e) => setIdx(Number(e.target.value))}
           className="sl-range w-full" aria-label="Ask price"
         />

@@ -115,7 +115,7 @@ export default function ResellConfirm({ order, item, busy, quotePreview, onGrade
           </div>
           <p className="mt-2 text-[11.5px] text-sl-muted leading-relaxed px-1">
             {images.length
-              ? "Nova-2 grades your photos live → a fair resale price. We verify it’s the item you bought."
+              ? "AI grades your photos live → a fair resale price. We verify it’s the item you bought."
               : "Upload at least one photo of the actual unit — we grade it and confirm it matches your order."}
           </p>
         </div>

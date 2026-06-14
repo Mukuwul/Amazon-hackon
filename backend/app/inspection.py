@@ -16,6 +16,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, ValidationError
 
 from . import passport, seed
+from .grading import force_cached_env
 from .llm import PROVIDER_MODEL, ask_llm_images
 
 log = logging.getLogger("inspection")
@@ -90,6 +91,7 @@ def seal_check(item_id: str, force_cached: bool = False) -> dict:
     if item is None:
         raise KeyError(item_id)
 
+    force_cached = force_cached or force_cached_env()
     t0 = time.monotonic()
     core = None
     source = model = ""
@@ -131,6 +133,7 @@ def diagnose_listing(asin: str, force_cached: bool = False) -> dict:
         raise KeyError(asin)
     item_id = item["item_id"]
 
+    force_cached = force_cached or force_cached_env()
     t0 = time.monotonic()
     core = None
     source = model = ""

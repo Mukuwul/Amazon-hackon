@@ -119,6 +119,13 @@ export default function Grade({ item, grade, previews, routing, onRoute, onBack 
             ⚑ {grade.review_reason || "Flagged for human review."}
           </p>
         )}
+        {/* Honesty: a cached fallback did NOT analyse the uploaded photos (finding 1). */}
+        {grade.cached_upload_notice && (
+          <div className="mt-2 rounded-xl bg-slate-100 ring-1 ring-slate-200 px-3 py-2.5 flex items-start gap-2">
+            <span className="text-slate-500 mt-0.5">ⓘ</span>
+            <p className="text-[12px] text-slate-600 leading-snug">{grade.cached_upload_notice}</p>
+          </div>
+        )}
       </div>
 
       <FooterAction

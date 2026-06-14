@@ -11,20 +11,18 @@ import GreenLedger from "../components/GreenLedger";
 // GET /your-things/{persona}; the impact strip to GET /green-ledger/{persona}.
 export default function YourThings({ persona, busyResell, onResell }) {
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let alive = true;
-    setLoading(true);
     api
       .yourThings(persona)
       .then((d) => { if (alive) setData(d); })
-      .catch(() => { if (alive) setData({ things: [], total_dormant_value: 0, item_count: 0, due_count: 0 }); })
-      .finally(() => { if (alive) setLoading(false); });
+      .catch(() => { if (alive) setData({ things: [], total_dormant_value: 0, item_count: 0, due_count: 0 }); });
     return () => { alive = false; };
   }, [persona]);
 
-  if (loading) return <div className="grid place-items-center py-16 text-sl-muted"><Spinner /></div>;
+  // Loading is simply "no data yet" — no synchronous setState in the effect.
+  if (data === null) return <div className="grid place-items-center py-16 text-sl-muted"><Spinner /></div>;
   const things = data?.things || [];
 
   return (

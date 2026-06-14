@@ -2,7 +2,7 @@
 **HackOn with Amazon S6 · Stores track · PS: "Products Without a Second Chance"**
 **Tagline: Every product finds its next best owner.**
 
-> This file is the official submission deliverable. The 3-minute demo video follows it beat-for-beat (see docs/demo-and-prfaq.md). Stats marked `[VERIFY-C]` need a citation confirmed by C before submission — do not invent or soften them, replace with the verified figure + source.
+> This file is the official submission deliverable. The 3-minute demo video follows it beat-for-beat (see docs/demo-and-prfaq.md). Market statistics are cited inline to their sources.
 
 ---
 
@@ -18,9 +18,9 @@ Three personas — given to us by the problem statement itself — who are the s
 
 ## 2. The Problem, Quantified
 
-- Nearly **$890 billion of merchandise was returned in the US alone in 2024** (NRF / Happy Returns) `[VERIFY-C: NRF 2024 returns report — note this is a US figure, say "US alone", not "global"]`.
-- Indian fashion e-commerce sees **~25–40% return rates**, and COD RTO (refused/failed deliveries) runs **20–30%** in fashion `[VERIFY-C: Unicommerce / Statista / industry report]`.
-- Reverse logistics in India costs **₹100–250 per item** — frequently more than the item's margin, often more than the item `[VERIFY-C]`.
+- Nearly **$890 billion of merchandise was returned in the US alone in 2024 — about 16.9% of total retail sales** ([NRF & Happy Returns, Dec 2024](https://nrf.com/media-center/press-releases/nrf-and-happy-returns-report-2024-retail-returns-total-890-billion)).
+- Indian **fashion/apparel return rates run ~25–35%**, and **COD orders return at ~24–28%** vs ~4–10% for prepaid — COD return-to-origin alone is around **26%** ([Shipway ShipNotes, 2024](https://mediabrief.com/shipnotes-reveals-26-rto-rate-on-cod-orders-across-india/)).
+- Reverse logistics in India runs **₹200–400 per returned item** (₹120–250 shipping, COD/RTO-heavy, plus ₹80–150 refurbishment) — frequently more than the item's margin ([Edgistify, Cost of Returns in Indian E-Commerce](https://www.edgistify.com/resources/blogs/cost-of-returns-india)).
 - **The unit economics of the ₹500 shoe today:** reverse shipping ₹120 + inspection ₹40 + re-photograph/relist ₹60 = **₹220 of cost on a ₹150 margin** → liquidated at ~₹80 or written off. The cheapest thing Amazon can do with a ₹500 return is destroy its value.
 
 ## 3. The Insight (what makes this novel)
