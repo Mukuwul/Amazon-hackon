@@ -36,7 +36,7 @@ export default function MyResells({ persona, onToast }) {
         const updated = await api.sellToInterest(listing.listing_id, interest.interest_id);
         onToast?.({
           title: "Sold on Second Life",
-          message: `${listing.title} → ${interest.buyer_name}. ${inr(updated.net_earned)} credited to your Amazon balance.`,
+          message: `${listing.title} → ${interest.buyer_name}. ${inr(updated.net_earned)} will be credited to your Amazon balance after delivery.`,
         });
       } else {
         await api.declineInterest(listing.listing_id, interest.interest_id);
@@ -100,7 +100,7 @@ export default function MyResells({ persona, onToast }) {
                     </div>
                     <div className="text-right shrink-0">
                       <p className="text-[15px] font-800 tnum text-sl-green-deep">{inr(l.net_earned)}</p>
-                      <p className="text-[10.5px] text-sl-muted">credited to you</p>
+                      <p className="text-[10.5px] text-sl-muted">credited after delivery</p>
                     </div>
                   </div>
                 </div>

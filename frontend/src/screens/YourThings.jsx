@@ -9,7 +9,7 @@ import GreenLedger from "../components/GreenLedger";
 // you own, valued live as idle inventory, with the dormant total your home is holding,
 // a life-stage bar, and a one-tap Resell into the existing flow. Every figure traces to
 // GET /your-things/{persona}; the impact strip to GET /green-ledger/{persona}.
-export default function YourThings({ persona, busy, onResell }) {
+export default function YourThings({ persona, busyResell, onResell }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -46,15 +46,16 @@ export default function YourThings({ persona, busy, onResell }) {
       {/* things — highest dormant value first */}
       <div className="grid gap-3 md:grid-cols-2">
         {things.map((t, i) => (
-          <ThingCard key={t.order_id || t.asin} thing={t} busy={busy} onResell={onResell} delay={i * 40} />
+          <ThingCard key={t.order_id || t.asin} thing={t} busyResell={busyResell} onResell={onResell} delay={i * 40} />
         ))}
       </div>
     </div>
   );
 }
 
-function ThingCard({ thing, busy, onResell, delay }) {
+function ThingCard({ thing, busyResell, onResell, delay }) {
   const due = thing.due_to_resell;
+  const resellBusy = busyResell != null && busyResell === (thing.order_id || thing.item_id);
   return (
     <div className="rounded-2xl bg-white ring-1 ring-sl-line shadow-card p-4" style={{ animationDelay: `${delay}ms` }}>
       <div className="flex gap-3">
@@ -87,10 +88,10 @@ function ThingCard({ thing, busy, onResell, delay }) {
 
       <button
         onClick={() => onResell(thing)}
-        disabled={busy || !thing.resellable}
+        disabled={resellBusy || !thing.resellable}
         className="mt-3 w-full h-9 rounded-lg text-[12.5px] font-800 bg-sl-green text-white hover:bg-sl-green-deep transition active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
       >
-        {busy && <Spinner className="w-3.5 h-3.5" />}
+        {resellBusy && <Spinner className="w-3.5 h-3.5" />}
         {thing.resellable ? (due ? "Resell now · best time" : "Resell on Second Life") : "Resale coming soon"}
       </button>
     </div>

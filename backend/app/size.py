@@ -84,6 +84,7 @@ def size_advice(asin: str, persona: str | None = None) -> dict | None:
         "category": item["category"] if item else None,
         "mrp": item["mrp"] if item else None,
         "thumb": item.get("thumb") if item else None,
+        "store_thumb": item.get("store_thumb") if item else None,
         "fit": fit,
         "personal": _personal(asin, persona, item, fit) if persona else None,
         "resale_hint": resale_hint,

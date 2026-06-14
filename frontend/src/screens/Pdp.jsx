@@ -20,7 +20,7 @@ export default function Pdp({ advice, secondLife, onBack, onBuy, onPickSecondLif
       {/* product header */}
       <div className="px-4 pt-4">
         <div className="rounded-2xl bg-white shadow-card ring-1 ring-sl-line p-3.5 flex gap-3 anim-fade-up">
-          <Thumb src={advice.thumb} alt={advice.title} category={advice.category} className="w-[84px] h-[84px] rounded-xl shrink-0" />
+          <Thumb src={advice.store_thumb || advice.thumb} alt={advice.title} category={advice.category} className="w-[84px] h-[84px] rounded-xl shrink-0" />
           <div className="min-w-0 flex-1">
             <h2 className="font-600 text-[14.5px] leading-tight text-sl-ink">{advice.title}</h2>
             <p className="text-[11px] text-sl-muted mt-0.5 capitalize">{advice.category}</p>

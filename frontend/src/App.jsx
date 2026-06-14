@@ -107,6 +107,7 @@ export default function App() {
   const [diagnose, setDiagnose] = useState(null);
 
   const [busy, setBusy] = useState(false); // in-flight transition
+  const [busyResell, setBusyResell] = useState(null); // key of the order/thing whose resell is opening (per-item spinner)
   const [listed, setListed] = useState(false);
   const [toast, setToast] = useState(null); // { title, message }
   const [err, setErr] = useState(null);
@@ -582,7 +583,7 @@ export default function App() {
     setResellRange(7);
     setResellGrade("B");
     setResellQuote(null);
-    setBusy(true);
+    setBusyResell(order.order_id || order.item_id);
     try {
       const detail = await api.item(order.item_id).catch(() => null);
       const it = detail ? { ...detail.item } : { item_id: order.item_id, asin: order.asin, title: order.title };
@@ -593,7 +594,7 @@ export default function App() {
     } catch (e) {
       setErr({ message: `Couldn't open resell (${e.detail || e.message}).`, retry: () => startResell(order) });
     } finally {
-      setBusy(false);
+      setBusyResell(null);
     }
   }
 
@@ -734,6 +735,7 @@ export default function App() {
             extraNotifications={confirmedOrders}
             notifLoading={notifLoading}
             busy={busy}
+            busyResell={busyResell}
             tab={buyerTab}
             onTab={setBuyerTab}
             onOpenPdp={openPdp}
@@ -744,7 +746,7 @@ export default function App() {
             onNotif={openNotif}
             onFlash={<FlashDeals persona={me} onOpen={openFlashDetail} />}
             onResells={<MyResells persona={me} onToast={setToast} />}
-            onThings={<YourThings persona={SAMPLE} busy={busy} onResell={startResell} />}
+            onThings={<YourThings persona={SAMPLE} busyResell={busyResell} onResell={startResell} />}
             onBack={goHome}
           />
         )}

@@ -13,7 +13,7 @@ const FIT_ASINS = new Set(["B0SHOE500", "B0KURTA01"]);
 
 export default function BuyerStore({
   items, cart, cartLoading, orders, ordersLoading, notifications, extraNotifications, notifLoading,
-  busy, tab, onTab, onOpenPdp, onResell, onReturn, onReplace, onCheckout, onNotif, onBack,
+  busy, busyResell, tab, onTab, onOpenPdp, onResell, onReturn, onReplace, onCheckout, onNotif, onBack,
   onFlash, onResells, onThings,
 }) {
   const cartCount = cart?.count || 0;
@@ -38,7 +38,7 @@ export default function BuyerStore({
 
       {tab === "shop" && <Shop items={items} onOpenPdp={onOpenPdp} />}
       {tab === "cart" && <Cart cart={cart} loading={cartLoading} busy={busy} onCheckout={onCheckout} onShop={() => onTab("shop")} />}
-      {tab === "orders" && <Orders orders={orders} loading={ordersLoading} busy={busy} onResell={onResell} onReturn={onReturn} onReplace={onReplace} />}
+      {tab === "orders" && <Orders orders={orders} loading={ordersLoading} busyResell={busyResell} onResell={onResell} onReturn={onReturn} onReplace={onReplace} />}
       {tab === "things" && onThings}
       {tab === "flash" && onFlash}
       {tab === "resells" && onResells}
@@ -72,7 +72,7 @@ function Shop({ items, onOpenPdp }) {
             className="group text-left rounded-2xl bg-white ring-1 ring-sl-line shadow-card p-3 transition hover:ring-sl-green/60 hover:shadow-pop hover:-translate-y-0.5"
             style={{ animationDelay: `${i * 30}ms` }}
           >
-            <Thumb src={it.thumb} alt={it.title} category={it.category} className="w-full aspect-square rounded-xl" />
+            <Thumb src={it.store_thumb || it.thumb} alt={it.title} category={it.category} className="w-full aspect-square rounded-xl" />
             <h3 className="mt-2.5 font-600 text-[12.5px] leading-tight text-sl-ink line-clamp-2 min-h-[34px]">{it.title}</h3>
             <div className="mt-1 flex items-center justify-between">
               <span className="font-display font-800 text-[16px] tnum text-sl-ink">{inr(it.mrp)}</span>
@@ -143,11 +143,13 @@ function Cart({ cart, loading, busy, onCheckout, onShop }) {
   );
 }
 
-function Orders({ orders, loading, busy, onResell, onReturn, onReplace }) {
+function Orders({ orders, loading, busyResell, onResell, onReturn, onReplace }) {
   if (loading) return <Center><Spinner /></Center>;
   return (
     <div className="grid gap-3 md:grid-cols-2 anim-fade-up">
-      {(orders || []).map((o, i) => (
+      {(orders || []).map((o, i) => {
+        const resellBusy = busyResell != null && busyResell === (o.order_id || o.item_id);
+        return (
         <div key={o.order_id} className="rounded-2xl bg-white ring-1 ring-sl-line shadow-card p-4" style={{ animationDelay: `${i * 40}ms` }}>
           <div className="flex gap-3">
             <Thumb src={`/items/${o.item_id || o.asin || "x"}/current_1.jpg`} alt={o.title} category={o.category || "electronics"} className="w-16 h-16 rounded-xl shrink-0" />
@@ -182,15 +184,16 @@ function Orders({ orders, loading, busy, onResell, onReturn, onReplace }) {
             {/* Every item can be resold — listing it creates the flash-deal, demand follows */}
             <button
               onClick={() => onResell(o)}
-              disabled={busy}
+              disabled={resellBusy}
               className="w-full h-9 rounded-lg text-[12.5px] font-800 bg-sl-green text-white hover:bg-sl-green-deep transition active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-1.5"
             >
-              {busy && <Spinner className="w-3.5 h-3.5" />}
+              {resellBusy && <Spinner className="w-3.5 h-3.5" />}
               Resell on Second Life
             </button>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

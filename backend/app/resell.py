@@ -25,7 +25,7 @@ DELIVERY_PER_KM = 6     # ₹ per km of reach (Amazon's cut grows with distance)
 # a grade + confidence so the Flash-deal detail view (MT12 NEW 12) always has a
 # condition report to show before a buyer expresses interest.
 _STARTER = [
-    {"item_id": "SL-006", "asin": "B0HDPHN880", "title": "SonicWave ANC Headphones",
+    {"item_id": "SL-006", "asin": "B0HDPHN880", "title": "Amazon Basics ANC Headphones",
      "thumb": "/items/SL-006/current_1.jpg", "ask_price": 2600, "range_km": 7, "owner": "Sneha K.",
      "grade": "B", "confidence": 0.9, "source": "resell", "category": "electronics"},
     {"item_id": "SL-008", "asin": "B0BCKPCK19", "title": "TrailMate 28L Backpack",
