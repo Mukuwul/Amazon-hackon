@@ -16,6 +16,9 @@ export default function Grade({ item, grade, previews, routing, onRoute, onBack 
   const su = grade.same_unit || {};
   // NEW 6 — the NOW tile shows the photo the agent uploaded, not a seeded file.
   const nowSrc = (previews && previews[0]) || `/items/${id}/current_1.jpg`;
+  // Block routing when the returned unit isn't the one that was delivered (customer
+  // fault / not returnable) — a mismatch must not proceed to a recovery path.
+  const blocked = grade.returnable === false || grade.fault_attribution === "customer";
 
   return (
     <div className="screen-scroll bg-sl-paper">
@@ -118,11 +121,23 @@ export default function Grade({ item, grade, previews, routing, onRoute, onBack 
         )}
       </div>
 
-      <FooterAction onClick={onRoute} loading={routing} hint="Money math is deterministic — not the LLM">
-        See best recovery path
-        <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
-          <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+      <FooterAction
+        onClick={onRoute}
+        loading={routing}
+        disabled={blocked}
+        variant={blocked ? "secondary" : "primary"}
+        hint={blocked ? "Mismatch — not eligible for return or recovery" : "Money math is deterministic — not the LLM"}
+      >
+        {blocked ? (
+          "Recovery path unavailable"
+        ) : (
+          <>
+            See best recovery path
+            <svg viewBox="0 0 24 24" className="w-4 h-4" fill="none">
+              <path d="M9 5l7 7-7 7" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </>
+        )}
       </FooterAction>
     </div>
   );
