@@ -7,7 +7,6 @@ products a second life instead of a one-way trip to a warehouse or a landfill. B
 **HackOn with Amazon — Season 6** (Stores track · *"Products Without a Second Chance"*).
 
 - **Live demo:** https://amazon-hackon.vercel.app
-- **API (AWS Lambda Function URL):** https://ahwfmhaqed45p5xxk2u663oi6m0mejgi.lambda-url.ca-central-1.on.aws
 
 ![Landing](docs/screenshots/01-landing.png)
 
@@ -193,4 +192,3 @@ docs/           PRD, architecture, api-spec, demo script, screenshots
 - [docs/PRD.md](docs/PRD.md) — the submission deliverable
 - [docs/architecture.md](docs/architecture.md) — system design, VRS math, GenAI core, failover path
 - [docs/api-spec.md](docs/api-spec.md) — every endpoint
-- [docs/demo-and-prfaq.md](docs/demo-and-prfaq.md) — 3-minute demo beat sheet + jury Q&A
