@@ -32,7 +32,7 @@ flowchart LR
         R[One-tap resell\nfrom order history] --> P
         D[Demand: search/wishlist\nnear the item] --> IAR
     end
-    subgraph GenAI core - Bedrock Nova 2 Lite multimodal
+    subgraph GenAI core - Gemini 2.5 Flash multimodal, Nova failover
         G[Delta-Grader\ncatalog + birth-certificate vs now] -->|grade, defects,\nconfidence, same-unit| V
         S[Seal-Check\nRTO lane] --> V
         L[Listing Diagnostics\nlisting vs returned photos] --> PATCH[Auto-patch listing]
@@ -47,7 +47,7 @@ flowchart LR
     V -.->|confidence < 0.70| HQ[Human review queue]
 ```
 
-## 3. GenAI core — the three Bedrock calls
+## 3. GenAI core — the three vision calls
 
 All three use the existing `llm.py` failover pattern, extended with image content blocks and JSON-constrained output. **Primary provider is Gemini 2.5 Flash; Bedrock Nova 2 Lite is the failover** (set via `LLM_PRIMARY`/`LLM_FALLBACK`; Gemini Pro's free tier quota-walls under demo load, Flash does not). `temperature=0.2` for grading (consistency > creativity). Gemini vision runs with `response_mime_type="application/json"` **and thinking disabled** (`thinking_budget=0`) — 2.5 Flash is a thinking model whose reasoning tokens otherwise eat `max_output_tokens` and truncate the JSON mid-object on harder cases. Every response is validated against a Pydantic schema; invalid JSON → one retry with the validation error in the prompt → then cached fallback.
 
@@ -102,7 +102,7 @@ Each path returns its full cost breakdown — the frontend renders the math, not
 | Keep | Why |
 |---|---|
 | Lambda container + ECR + deploy.ps1, ca-central-1, Function URL | deployed & verified; Bedrock throttle-free region |
-| `llm.py` failover (Bedrock→Gemini), timeout-bounded calls | both providers are vision-capable — failover covers multimodal |
+| `llm.py` failover (Gemini→Bedrock), timeout-bounded calls | both providers are vision-capable — failover covers multimodal |
 | App-level CORS via `ALLOWED_ORIGINS` | single source of truth |
 | React+Tailwind on Vercel, `VITE_API_URL` | auto-deploy on push |
 

@@ -6,7 +6,7 @@
 ## Stack (LOCKED)
 - Frontend: React 19 + Tailwind v4 (Vite) on Vercel — phone-frame, inside-the-Amazon-order-flow UI (a layer, not an app)
 - Backend: FastAPI on AWS Lambda (container/ECR, ca-central-1, Function URL) + Mangum — already deployed, redeploy via `backend/deploy.ps1`
-- GenAI: Bedrock Nova 2 Lite multimodal (`us.amazon.nova-2-lite-v1:0`) primary, Gemini 2.5 Flash failover (both vision-capable); LLM = perception layer, money math = deterministic Python
+- GenAI: Gemini 2.5 Flash multimodal primary, Bedrock Nova 2 Lite (`us.amazon.nova-2-lite-v1:0`) failover (both vision-capable; provider-agnostic via `LLM_PRIMARY`/`LLM_FALLBACK` — Gemini Flash has free-tier headroom, Nova on AWS credits is the always-available backstop); LLM = perception layer, money math = deterministic Python
 - DB: DynamoDB passport event log behind `DYNAMODB_TABLE_NAME` env flag; in-memory JSON-seeded fallback — demo never blocks on it (docs/db-setup.md)
 - Demo safety: repo-baked seed items + cached AI responses; a failed live call on stage is invisible
 
