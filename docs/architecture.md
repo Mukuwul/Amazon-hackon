@@ -51,7 +51,7 @@ flowchart LR
     end
     P[Product Passport\nDynamoDB event log] <--> G & V & HC
     HC[Product Health Card\n+ warranty transfer] --> BUY[Next owner\nPDP row / locker / agent hop]
-    V -. -->|confidence < 0.70| HQ[Human review queue]
+    V -.->|confidence < 0.70| HQ["Human review queue"]
 ```
 
 ## 3. Computer Vision & Grading Core

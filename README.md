@@ -2,9 +2,7 @@
 
 **Every product finds its next best owner.**
 
-A layer *inside* the Amazon order flow that gives returned, unused, and outgrown
-products a second life instead of a one-way trip to a warehouse or a landfill. Built for
-**HackOn with Amazon — Season 6** (Stores track · *"Products Without a Second Chance"*).
+An **END TO END SOLUTION** designed by starting from the **CUSTOMER** and working backwards. It integrates directly *inside* the Amazon order flow to give returned, unused, and outgrown products a second life instead of a one-way trip to a warehouse or a landfill. Built for **HackOn with Amazon — Season 6** (Stores track · *"Products Without a Second Chance"*).
 
 - **Live demo:** https://amazon-hackon.vercel.app
 
@@ -14,7 +12,7 @@ products a second life instead of a one-way trip to a warehouse or a landfill. B
 
 # Problems We're Solving
 
-Three problems in the returns-and-resale economy — all rooted in the same gap: a product's fate is decided too late, too centrally, and at too much cost.
+To address these challenges, we started from the **CUSTOMER** and worked backwards, designing an **END TO END SOLUTION** to tackle the three core problems in the returns-and-resale economy:
 
 ---
 
@@ -96,7 +94,7 @@ trust, and a last-mile fleet. A standalone marketplace structurally cannot copy 
 
 ## How it works — the core flow
 
-Whether a returns agent scans a unit at handoff or an owner resells a dormant product from their order history, the item moves through five stages — each backed by real API calls you can audit in the network tab.
+Working backwards from the **CUSTOMER**'s perspective, our **END TO END SOLUTION** manages the entire lifecycle of a product. Whether a returns agent scans a unit at handoff or an owner resells a dormant product from their order history, the item moves through five stages — each backed by real API calls you can audit in the network tab:
 
 ### 1. Scan and delta-grade
 
@@ -149,8 +147,7 @@ Owners can list dormant products directly from their order history using a **two
 
 ## Two-sided console — prevent, recover, recirculate
 
-The recovery flow above is the centerpiece. Around it, the console covers the full lifecycle
-a product can hit, across three entry points on the landing page.
+The recovery flow above is the centerpiece. Around it, this **END TO END SOLUTION** covers the full lifecycle a product can hit, starting from the **CUSTOMER**'s prevention entry points to operational recovery, across three areas on the landing page:
 
 **Recover** is the agent flow above. **Recirculate** is the buyer storefront — shop with fit
 proof, resell what you already own, and meet recovered units on the normal product page.
@@ -245,3 +242,4 @@ docs/           PRD, architecture, api-spec, screenshots
 - [docs/PRD.md](docs/PRD.md) — the submission deliverable
 - [docs/architecture.md](docs/architecture.md) — system design, VRS math, GenAI core, failover path
 - [docs/api-spec.md](docs/api-spec.md) — every endpoint
+- [docs/tasks.md](docs/tasks.md) — implementation report and verification checklist
