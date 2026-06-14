@@ -230,7 +230,7 @@ backend/app/    FastAPI app — grading, vrs, pricing, healthcard, radar, inspec
 backend/tests/  VRS reconciliation + hero golden + cache-floor guard
 backend/scripts/ cache capture + failover drill
 frontend/src/   React screens (the web console) + lib/api.js
-docs/           PRD, architecture, api-spec, demo script, screenshots
+docs/           PRD, architecture, api-spec, screenshots
 ```
 
 ## Documentation
