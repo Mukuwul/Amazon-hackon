@@ -145,7 +145,7 @@ function Orders({ orders, loading, busy, onResell, onReturn }) {
       {(orders || []).map((o, i) => (
         <div key={o.order_id} className="rounded-2xl bg-white ring-1 ring-sl-line shadow-card p-4" style={{ animationDelay: `${i * 40}ms` }}>
           <div className="flex gap-3">
-            <Thumb src={`/items/${o.item_id || "x"}/current_1.jpg`} alt={o.title} category="electronics" className="w-16 h-16 rounded-xl shrink-0" />
+            <Thumb src={`/items/${o.item_id || o.asin || "x"}/current_1.jpg`} alt={o.title} category={o.category || "electronics"} className="w-16 h-16 rounded-xl shrink-0" />
             <div className="min-w-0 flex-1">
               <h3 className="font-600 text-[13.5px] leading-tight text-sl-ink">{o.title}</h3>
               <p className="text-[11.5px] text-sl-muted mt-0.5">Delivered · {fmtDate(o.purchase_date)}</p>
