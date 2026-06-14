@@ -24,6 +24,7 @@ import ResellPrice from "./screens/ResellPrice";
 import FlashDeals from "./screens/FlashDeals";
 import FlashDealDetail from "./screens/FlashDealDetail";
 import MyResells from "./screens/MyResells";
+import YourThings from "./screens/YourThings";
 
 // Each inbox item drives a dedicated flow. SL-001 is the ⭐ spine; the rest are
 // the MT4 supporting beats. Anything not mapped here stays QUEUED in the inbox.
@@ -743,6 +744,7 @@ export default function App() {
             onNotif={openNotif}
             onFlash={<FlashDeals persona={me} onOpen={openFlashDetail} />}
             onResells={<MyResells persona={me} onToast={setToast} />}
+            onThings={<YourThings persona={SAMPLE} busy={busy} onResell={startResell} />}
             onBack={goHome}
           />
         )}

@@ -284,7 +284,8 @@ Scope: `[VERIFY-C]` citations resolved in PRD; PRD mapped onto the official subm
 - Frontend (reuse design system, zero new deps): buyer "Order confirmed" popup/notification; `FlashDeals` unchanged (server-side listing feeds it); `RouteScreen` quick-commerce vs Renewed/best-path card.
 - **Verify (MT14 done when):** all three build items pass their checks above; spine (SL-001) regression-clean; build clean, zero new deps; backend redeployed + re-curled; PRD §7 + architecture carry the 4 roadmap entries; walked via chrome-devtools on localhost AND the live Vercel URL; STATE.md + lessons.md updated.
 
-## MT15 — Make the invisible warehouse visible (A backend + B frontend)
+## MT15 — Make the invisible warehouse visible (A backend + B frontend) — ✅ DONE (June 14, deployed + curl-verified live)
+**STATUS:** both build items shipped + redeployed to Lambda + verified on the Function URL; 7 roadmap entries added to PRD §7 + architecture §14; api-spec.md documents both endpoints. Spine regression-clean (`tests/test_vrs.py` passes, SL-001 `+₹83 / −₹129`); frontend builds clean (344 KB, zero new deps); frontend field names cross-checked against the live API shape. In-browser walkthrough on localhost + Vercel left to the user (their instruction). See STATE.md Done block.
 **Why this exists:** the **activation half** of the split — surface and activate idle inventory in people's homes, from the owner's side (the pull twin of the Idle-Asset Radar's push). Design in `docs/superpowers/specs/2026-06-14-mt14-mt15-backlog-design.md`. Same iron rules as MT14.
 
 ### Scope — build

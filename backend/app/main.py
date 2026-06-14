@@ -8,6 +8,7 @@ from . import grading, passport, seed, vrs, healthcard, radar, inspection, prici
 from . import size, seller, orders as orders_mod, buyer, cascade as cascade_mod
 from . import returns as returns_mod, resell as resell_mod, second_life as second_life_mod
 from . import lifestage as lifestage_mod
+from . import your_things as your_things_mod, green_ledger as green_ledger_mod
 
 app = FastAPI(title="Amazon Second Life API")
 
@@ -235,6 +236,28 @@ def life_stage(asin: str, persona: str = "rahul"):
     if result is None:
         raise HTTPException(status_code=404, detail="asin not in catalog")
     return result
+
+
+# --- MT15: make the invisible warehouse visible (Your Things + Green Ledger) ---
+
+
+@app.get("/your-things/{persona}")
+def your_things(persona: str):
+    """Owner-side dormant inventory: every product the persona owns valued live as
+    idle resale stock (pricing.py + the life-stage curve), with the dormant-value
+    total. The pull twin of the demand-driven Idle Asset Radar."""
+    result = your_things_mod.your_things(persona)
+    if result is None:
+        raise HTTPException(status_code=404, detail="no order history for this persona")
+    return result
+
+
+@app.get("/green-ledger/{persona}")
+def green_ledger(persona: str):
+    """Per-persona impact ledger (CO₂ / landfill / items diverted), scoped to that
+    persona's own products from passport ROUTED events + a seeded baseline. Shown
+    subtly on the buyer's Your Things and the seller dashboard."""
+    return green_ledger_mod.green_ledger(persona)
 
 
 @app.get("/second-life/{asin}")

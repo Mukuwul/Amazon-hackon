@@ -14,7 +14,7 @@ const FIT_ASINS = new Set(["B0SHOE500", "B0KURTA01"]);
 export default function BuyerStore({
   items, cart, cartLoading, orders, ordersLoading, notifications, extraNotifications, notifLoading,
   busy, tab, onTab, onOpenPdp, onResell, onReturn, onReplace, onCheckout, onNotif, onBack,
-  onFlash, onResells,
+  onFlash, onResells, onThings,
 }) {
   const cartCount = cart?.count || 0;
   const orderCount = orders?.length || 0;
@@ -30,6 +30,7 @@ export default function BuyerStore({
         <Tab active={tab === "shop"} onClick={() => onTab("shop")}>Shop</Tab>
         <Tab active={tab === "cart"} onClick={() => onTab("cart")}>Cart{cartCount ? ` · ${cartCount}` : ""}</Tab>
         <Tab active={tab === "orders"} onClick={() => onTab("orders")}>Your orders{orderCount ? ` · ${orderCount}` : ""}</Tab>
+        <Tab active={tab === "things"} onClick={() => onTab("things")}>Your things</Tab>
         <Tab active={tab === "flash"} onClick={() => onTab("flash")}>Flash deals</Tab>
         <Tab active={tab === "resells"} onClick={() => onTab("resells")}>My resells</Tab>
         <Tab active={tab === "notifications"} onClick={() => onTab("notifications")}>Notifications{newCount ? ` · ${newCount}` : ""}</Tab>
@@ -38,6 +39,7 @@ export default function BuyerStore({
       {tab === "shop" && <Shop items={items} onOpenPdp={onOpenPdp} />}
       {tab === "cart" && <Cart cart={cart} loading={cartLoading} busy={busy} onCheckout={onCheckout} onShop={() => onTab("shop")} />}
       {tab === "orders" && <Orders orders={orders} loading={ordersLoading} busy={busy} onResell={onResell} onReturn={onReturn} onReplace={onReplace} />}
+      {tab === "things" && onThings}
       {tab === "flash" && onFlash}
       {tab === "resells" && onResells}
       {tab === "notifications" && <Notifications list={allNotifs} loading={notifLoading} busy={busy} onNotif={onNotif} />}

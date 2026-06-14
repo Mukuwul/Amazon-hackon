@@ -58,6 +58,10 @@ export const api = {
   // MT11 — buy-side: recovered units of an ASIN on offer near the shopper, shown
   // on the PDP. Stateless read (price from the engine, grade/distance seeded).
   secondLife: (asin) => req(`/second-life/${asin}`),
+  // MT15 — make the invisible warehouse visible. Owner-side dormant inventory +
+  // per-persona impact ledger. Both stateless reads (derived from the engine).
+  yourThings: (persona) => req(`/your-things/${persona}`),
+  greenLedger: (persona) => req(`/green-ledger/${persona}`),
   // MT10 — Ops returns desk + resell marketplace.
   returns: () => req("/returns"),
   addReturn: (body) => req("/returns", { method: "POST", body }),

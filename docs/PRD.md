@@ -95,6 +95,15 @@ React (phone-frame, inside-the-order-flow UI) on Vercel → FastAPI on AWS Lambd
 - **Agent-as-grader / Agent Flip (§3.3, §4.3):** the delivery agent grades at the doorstep on pickup; Agent Flip lists the graded unit straight onto that route's flash deals.
 - **Usage-data certification (§5.3):** the Health Card quantifies verified device usage (battery cycle count, sensors verified) for electronics — the deep version of the battery-cycle line now shipped on the Renewed-routed Health Card.
 
+**Activation & invisible-warehouse roadmap** (surfacing and harvesting dormant inventory in people's homes — the pull twin of the shipped Idle-Asset Radar, beyond the "Your Things" dashboard + per-persona Green Ledger now shipped):
+- **Hidden QR resale + gift transfer (§2, §18):** every product ships a QR; a scan opens a prefilled resale page (Amazon already knows the item), and a gift recipient's scan transfers passport ownership so they can resell an item that was never in their own order history.
+- **Brand layer (§18.5):** brands get right-of-first-refusal on their own returns (buy back graded units before public relist) and fund trade-in boosts, surfaced on the seller dashboard.
+- **Pickup piggybacking (§8.4):** an agent already driving to an address is shown nearby dormant items to collect on the same trip — ~₹0 marginal cost to harvest the invisible warehouse.
+- **Season-aware routing (§8.6):** demand timing becomes a VRS input — a winter jacket holds or routes to a still-cold region; festival spikes raise local resale price — one line in the VRS math.
+- **Material-stream routing (§18.7):** genuinely-dead items route by material (cotton → textile recyclers, electronics → e-waste) into India's EPR law → sellable compliance certificates — the per-material mechanic behind the EPR revenue line.
+- **Grow Cycle subscription (§7.2):** a swap subscription for outgrowable categories (baby gear, kids' shoes) — outgrow → agent collects + relists the old, delivers the next size up.
+- **Micro-liquidation bidding (§4.7):** local kiranas / neighbourhood resellers bid on individual items in their pin code (40%+ recovery) instead of bulk-pallet liquidation (10–15%) — the lowest tier of the existing VRS cascade, as a local market.
+
 ## 8. "Doesn't Amazon already do this?" (pre-empted)
 
 - **Amazon Renewed / Warehouse Deals:** proves demand exists — but warehouse-bound, human-graded, premium-skewed, and a separate storefront nobody visits. We fix the supply economics it structurally can't reach, and surface it on the normal PDP.

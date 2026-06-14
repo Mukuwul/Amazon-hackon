@@ -185,3 +185,19 @@ Three build items, iron rule held, ⭐ SL-001 spine regression-clean (`local_p2p
 - **#10 Review-informed inspection checklists (§18.2):** mine a SKU's own customer reviews (one extra LLM call) to auto-build its per-item inspection checklist.
 - **#2 Agent-as-grader / Agent Flip (§3.3, §4.3):** the delivery agent grades at the doorstep during pickup; Agent Flip posts the graded unit straight to that route's flash deals.
 - **#12 Usage-data certification (§5.3):** the deep version of the battery-cycle hook — the Health Card quantifies verified device usage (battery cycle count, sensors verified) for electronics.
+
+## 14. Make the invisible warehouse visible (MT15)
+
+Two build items, iron rule held (every rupee derived from the engine, no hardcoded JSX), ⭐ SL-001 spine regression-clean. Both endpoints are pure deterministic Python — no LLM, no cache — so they can't fail live.
+
+- **"Your Things" — owner-side dormant inventory (`GET /your-things/{persona}`, `your_things.py`).** Every product a persona has bought, valued live as idle resale stock: a still-owned, well-kept unit is graded at a like-kept `B` and depreciated by age through `pricing.resale_value(mrp, category, months_owned, "B", 1.0)`; the next-month value gives the `decay_per_month`. The life-stage curve (`seed.lifestage_curve` + `lifestage.DUE_FRACTION`, shared with `/life-stage`) supplies `stage_pct`, `stage_label`, and a `due_to_resell` flag. The response totals `total_dormant_value` across all things and sorts highest-value first — "the dormant value your home is holding," the **pull twin** of the demand-driven Idle-Asset Radar (which pushes from the buyer side). Only catalog-resolved items are `resellable`, so the per-thing Resell CTA routes straight into the existing resell flow (`App.startResell`). Frontend: a new `YourThings` screen (dormant-value hero + per-thing cards with a life-stage bar) reachable from the buyer storefront's "Your things" tab.
+- **Personal Green Ledger (`GET /green-ledger/{persona}`, `green_ledger.py`).** The global `/metrics` impact (CO₂ / landfill / items diverted) scoped to one persona's own products — derived from that persona's `ROUTED` passport events plus a small seeded baseline (mirrors `metrics.BASELINE`) so the strip reads non-zero before the live demo; reuses `metrics.LANDFILL_KG`. Surfaced **subtly** as a small `GreenLedger` strip (a line, not a hero panel) on both the buyer's Your Things hero (dark tone) and the seller dashboard (light tone). Renders nothing until the data lands, so it never breaks layout.
+
+### Roadmap (deferred, design-only — see PRD §7)
+- **#3 Hidden QR resale + gift transfer (§2, §18):** every product ships a QR; a scan opens a prefilled resale page, and a gift recipient's scan transfers passport ownership so they can resell an item never in their own order history.
+- **#4 Brand layer (§18.5):** brands get right-of-first-refusal on their own returns + fund trade-in boosts, surfaced on the seller dashboard.
+- **#8 Pickup piggybacking (§8.4):** an agent already driving to an address is shown nearby dormant items to collect on the same trip (~₹0 marginal cost).
+- **#9 Season-aware routing (§8.6):** demand timing becomes a VRS input (hold a winter jacket, or route it to a still-cold region; festival spikes raise local resale price) — one line in the VRS math.
+- **#14 Material-stream routing (§18.7):** genuinely-dead items route by material (cotton → textile recyclers, electronics → e-waste) into India's EPR law → sellable compliance certificates.
+- **Grow Cycle subscription (§7.2):** a swap subscription for outgrowable categories (baby gear, kids' shoes) — outgrow → agent collects + relists the old, delivers the next size up.
+- **Micro-liquidation bidding (§4.7):** local kiranas / neighbourhood resellers bid on individual items in their pin code (40%+ recovery) vs bulk-pallet liquidation (10–15%) — the lowest cascade tier as a local market.

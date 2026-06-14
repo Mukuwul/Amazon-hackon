@@ -1,6 +1,7 @@
 import TopBar from "../components/TopBar";
 import Thumb from "../components/Thumb";
 import { SLBadge, Spinner } from "../components/ui";
+import GreenLedger from "../components/GreenLedger";
 import { num } from "../lib/format";
 
 // Seller return-rate dashboard (MT9 web table) — the seller-side PREVENT moment.
@@ -34,6 +35,12 @@ export default function SellerDashboard({ data, loading, busy, busyAsin, onDiagn
                 “{worst.title}” drives the most — {worst.return_rate_pct}% come back. Fix it first.
               </p>
             )}
+          </div>
+
+          {/* MT15 — the seller's own Green Ledger, a subtle impact strip */}
+          <div className="mt-4 anim-fade-up">
+            <p className="mb-2 text-[11px] font-700 uppercase tracking-wider text-sl-muted">Your Second Life impact</p>
+            <GreenLedger persona="vastram" />
           </div>
 
           <p className="mt-7 mb-3 text-[12px] font-700 uppercase tracking-wider text-sl-muted">Listings · worst-first</p>
