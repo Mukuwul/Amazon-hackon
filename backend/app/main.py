@@ -195,6 +195,7 @@ def diagnose_listing(body: DiagnoseIn):
         raise HTTPException(status_code=404, detail="item not found")
     except inspection.CacheMiss:
         raise HTTPException(status_code=502, detail="ai_unavailable")
+    
 
 
 @app.get("/metrics")
