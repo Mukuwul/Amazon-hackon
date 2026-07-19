@@ -26,8 +26,11 @@ INSPECTION_HOURS_PER_BYPASS = 0.33  # ~20 min of manual FC inspection saved per 
 
 
 def metrics() -> dict:
-    graded = sum(1 for it in seed.ITEMS if passport.latest_event(it, "GRADED"))
-    routed = [(it, passport.latest_event(it, "ROUTED")) for it in seed.ITEMS]
+    # Read the in-memory log (latest_event_local), NOT the DynamoDB-first latest_event:
+    # these counters are per-instance and must stay zeroable by POST /metrics/reset,
+    # which clears the in-memory log but never the append-only DynamoDB history.
+    graded = sum(1 for it in seed.ITEMS if passport.latest_event_local(it, "GRADED"))
+    routed = [(it, passport.latest_event_local(it, "ROUTED")) for it in seed.ITEMS]
     routed = [(it, ev) for it, ev in routed if ev]
 
     recovered = vs_writeoff = co2 = landfill = 0.0

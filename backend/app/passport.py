@@ -50,7 +50,10 @@ def reset() -> None:
     POST /metrics/reset so a presenter gets a clean, stable metrics number before
     a rehearsal run — the in-memory store is per-instance and the cumulative
     counter otherwise drifts up every time an item is routed. Does NOT touch
-    DynamoDB history (append-only); only the per-instance working set."""
+    DynamoDB history (append-only); only the per-instance working set. The
+    metrics/green-ledger counters read latest_event_local (the in-memory log),
+    so clearing it here reliably zeroes them even though the spine's latest_event
+    now reads DynamoDB-first."""
     _events.clear()
     _seed_baseline()
 
@@ -81,6 +84,21 @@ def _dynamo_events(item_id: str) -> list[dict]:
     return out
 
 
+def latest_event_local(item_id: str, event: str) -> dict | None:
+    """Latest matching event from the per-instance IN-MEMORY log ONLY (never DynamoDB).
+
+    The demo impact counters (/metrics, green-ledger) read through here on purpose:
+    they are meant to be per-instance and zeroable via POST /metrics/reset, which
+    clears this in-memory log. Routing them through the DynamoDB-first latest_event()
+    would read the append-only table that reset() deliberately never touches, so the
+    counter could never be reset. Keeping the counters on the in-memory log preserves
+    the resettable behaviour independently of how the spine reads the source of truth."""
+    for record in reversed(_events.get(item_id, [])):
+        if record["event"] == event:
+            return record
+    return None
+
+
 def latest_event(item_id: str, event: str) -> dict | None:
     # DynamoDB-first: the passport table is the single source of truth across all
     # Lambda instances, so a grade written on ANY instance is visible to the next
@@ -94,7 +112,4 @@ def latest_event(item_id: str, event: str) -> dict | None:
     # Fallback: the per-instance in-memory log. This is the ONLY path when DynamoDB
     # is unconfigured/unreachable, and the safety net if a best-effort write never
     # landed in the table but the in-memory append did.
-    for record in reversed(_events.get(item_id, [])):
-        if record["event"] == event:
-            return record
-    return None
+    return latest_event_local(item_id, event)

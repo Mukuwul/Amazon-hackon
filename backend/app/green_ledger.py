@@ -48,7 +48,9 @@ def green_ledger(persona: str) -> dict:
     co2 = base["co2_saved_kg"]
     landfill = base["landfill_diverted_kg"]
     for item_id in _owned_item_ids(persona):
-        ev = passport.latest_event(item_id, "ROUTED")
+        # In-memory log (see metrics.py): the ledger is a resettable per-instance
+        # counter, so it reads latest_event_local, not the DynamoDB-first latest_event.
+        ev = passport.latest_event_local(item_id, "ROUTED")
         if not ev:
             continue
         d = ev["data"]
